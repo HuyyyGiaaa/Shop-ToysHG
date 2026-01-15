@@ -1,0 +1,72 @@
+# ===== Th? m?c Build Output =====
+bin/
+obj/
+Debug/
+Release/
+
+# ===== Visual Studio Cache =====
+.vs/
+.vscode/
+.idea/
+
+# ===== File c?u hình c?c b? =====
+appsettings.local.json
+appsettings.Development.json
+appsettings.Production.json
+local.settings.json
+*.user
+*.userprefs
+
+# ===== File log =====
+*.log
+logs/
+
+# ===== Th? m?c Publish =====
+PublishProfiles/
+publish/
+
+# ===== File t?m th?i =====
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ===== Node modules (n?u dùng npm) =====
+node_modules/
+package-lock.json
+yarn.lock
+dist/
+
+# ===== C? s? d? li?u =====
+*.db
+*.sqlite
+*.sqlite3
+*.mdf
+*.ldf
+
+# ===== Environment variables =====
+.env
+.env.local
+.env.*.local
+
+# ===== NuGet =====
+.nuget/
+packages/
+!packages/repositories.config
+
+# ===== ReSharper =====
+.resharper
+.resharper.user
+_ReSharper*/
+
+# ===== IDE settings =====
+*.sln.DotSettings.user
+*.VS.xml
+*.suo
+
+# ===== Th? m?c build khác =====
+build/
+.idea/

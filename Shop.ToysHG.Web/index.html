@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopToysHG - Cửa hàng đồ chơi</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛍️ ShopToysHG</h1>
+            <p>Cửa hàng đồ chơi chất lượng</p>
+        </header>
+
+        <nav>
+            <button onclick="loadHome()">🏠 Trang chủ</button>
+            <button onclick="loadProducts()">📦 Sản phẩm</button>
+            <button onclick="loadManagement()">⚙️ Chức năng</button>
+            <button onclick="testConnection()">🔧 Test kết nối</button>
+        </nav>
+
+        <main id="content">
+            <div class="welcome">
+                <h2>Chào mừng đến ShopToysHG!</h2>
+                <p>Nhấn các nút trên để bắt đầu</p>
+            </div>
+        </main>
+
+        <footer>
+            <p>Backend: <span id="backend-status">🔴 Chưa kết nối</span></p>
+            <p>&copy; 2026 ShopToysHG - Tất cả quyền được bảo lưu</p>
+        </footer>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
