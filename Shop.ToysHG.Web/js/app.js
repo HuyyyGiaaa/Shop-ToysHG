@@ -35,7 +35,9 @@ function loadHome() {
             <p>Chào mừng đến ShopToysHG!</p>
             <p>Đây là ứng dụng Frontend kết nối với Backend .NET Core 9</p>
             <p>Tổng cộng: <strong id="total-products">0</strong> sản phẩm</p>
+            <p>Giỏ hàng: <strong id="cart-count">0</strong> sản phẩm</p>
             <button onclick="loadProducts()">Xem tất cả sản phẩm</button>
+            <button onclick="loadCart()">Xem giỏ hàng</button>
             <button onclick="testConnection()">Test kết nối</button>
         </div>
     `;
@@ -53,13 +55,120 @@ async function fetchTotalProducts() {
 }
 
 /**
+ * Cập nhật số lượng giỏ hàng
+ */
+async function updateCartCount() {
+    const count = await getCartCount();
+    const cartCountElements = document.querySelectorAll('#cart-count');
+    cartCountElements.forEach(el => {
+        el.textContent = count;
+    });
+}
+
+/**
+ * Load giỏ hàng
+ */
+async function loadCart() {
+    const content = document.getElementById('content');
+    const items = await getCartItems();
+    const total = await getCartTotal();
+    const count = await getCartCount();
+
+    if (items.length === 0) {
+        content.innerHTML = `
+            <div class="section">
+                <h2>🛒 Giỏ hàng</h2>
+                <p>Giỏ hàng của bạn trống</p>
+                <button onclick="loadProducts()">Tiếp tục mua sắm</button>
+            </div>
+        `;
+        return;
+    }
+
+    let cartHTML = `
+        <div class="section">
+            <h2>🛒 Giỏ hàng (${count} sản phẩm)</h2>
+            
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                    <thead>
+                        <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
+                            <th style="padding: 10px; text-align: left;">Sản phẩm</th>
+                            <th style="padding: 10px; text-align: center;">Giá</th>
+                            <th style="padding: 10px; text-align: center;">Số lượng</th>
+                            <th style="padding: 10px; text-align: right;">Tổng</th>
+                            <th style="padding: 10px; text-align: center;">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+
+    items.forEach(item => {
+        cartHTML += `
+            <tr style="border-bottom: 1px solid #dee2e6;">
+                <td style="padding: 10px;">${item.productName}</td>
+                <td style="padding: 10px; text-align: center;">₫${Number(item.productPrice).toLocaleString('vi-VN')}</td>
+                <td style="padding: 10px; text-align: center;">
+                    <input type="number" 
+                        value="${item.quantity}" 
+                        min="1" 
+                        onchange="updateCartQuantity(${item.id}, this.value)"
+                        style="width: 60px; padding: 5px; border: 1px solid #dee2e6; border-radius: 3px;">
+                </td>
+                <td style="padding: 10px; text-align: right;">₫${Number(item.subtotal).toLocaleString('vi-VN')}</td>
+                <td style="padding: 10px; text-align: center;">
+                    <button onclick="removeFromCart(${item.id})" class="btn-delete" style="padding: 5px 10px;">🗑️</button>
+                </td>
+            </tr>
+        `;
+    });
+
+    cartHTML += `
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h3>Tóm tắt giỏ hàng</h3>
+                <p><strong>Tổng tiền:</strong> <span style="font-size: 1.5em; color: #dc3545;">₫${Number(total).toLocaleString('vi-VN')}</span></p>
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button onclick="loadProducts()" style="background: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">← Tiếp tục mua sắm</button>
+                <button onclick="proceedToCheckout()" style="background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">💳 Thanh toán</button>
+                <button onclick="clearCart(); loadCart();" style="background: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">🗑️ Xóa giỏ</button>
+            </div>
+        </div>
+    `;
+
+    content.innerHTML = cartHTML;
+}
+
+/**
+ * Tiến hành thanh toán
+ */
+function proceedToCheckout() {
+    const user = getCurrentUser();
+    
+    if (!user) {
+        alert('⚠️ Bạn cần đăng nhập để thanh toán!');
+        switchUserTab('login');
+        return;
+    }
+
+    // Chuyển đến tạo đơn hàng
+    switchOrderTab('create');
+    loadOrders();
+}
+
+/**
  * Load sản phẩm
  */
 function loadProducts() {
     const content = document.getElementById('content');
     content.innerHTML = `
         <div class="section">
-            <h2>📦 Danh sách sản phẩm (20)</h2>
+            <h2>📦 Danh sách sản phẩm</h2>
             
             <div class="search-container">
                 <input type="text" id="search-input" placeholder="🔍 Tìm kiếm theo tên..." onkeyup="searchProducts()">
@@ -202,20 +311,13 @@ function displayProducts(products) {
                     Kho: <span class="${product.stock > 0 ? 'in-stock' : 'out-stock'}">${product.stock}</span>
                 </div>
             </div>
-            <button class="btn-add-cart" onclick="addToCart(${product.id}, '${product.name}', ${product.price})">
+            <button class="btn-add-cart" onclick="addToCart(${product.id}, '${product.name}', ${product.price}); updateCartCount();">
                 🛒 Thêm vào giỏ
             </button>
         </div>
     `).join('');
 
     container.innerHTML = html;
-}
-
-/**
- * Thêm vào giỏ hàng
- */
-function addToCart(id, name, price) {
-    alert(`✅ Đã thêm "${name}" (₫${Number(price).toLocaleString('vi-VN')}) vào giỏ hàng`);
 }
 
 /**

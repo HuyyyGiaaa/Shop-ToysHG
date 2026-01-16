@@ -1,6 +1,6 @@
 // Cấu hình Backend URL
 const CONFIG = {
-    BACKEND_URL: 'http://localhost:5001',
+    BACKEND_URL: 'http://localhost:5000',
     TIMEOUT: 5000
 };
 

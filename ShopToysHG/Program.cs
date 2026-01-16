@@ -17,8 +17,12 @@ builder.Services.AddDbContext<ShopToysHGContext>(options =>
     options.UseMySql(connectionString, serverVersion)
 );
 
-// Add Repository
+// Add Repositories
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<ICartRepository, CartRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 
 // Add CORS
 builder.Services.AddCors(options =>
