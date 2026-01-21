@@ -140,7 +140,6 @@ async function loadCart() {
             </div>
         </div>
     `;
-
     content.innerHTML = cartHTML;
 }
 
@@ -516,4 +515,4 @@ async function testConnection() {
 }
 
 // Tự động load trang chủ khi mở
-loadHome();
+loadHome();loadHome();

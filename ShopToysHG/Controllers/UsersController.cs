@@ -29,7 +29,7 @@ namespace Shop_ToysHG.Controllers
         }
 
         /// <summary>
-        /// ??ng ký tài kho?n m?i
+        /// ??ng kí tài kho?n m?i
         /// </summary>
         [HttpPost("register")]
         public async Task<ActionResult<UserDto>> Register([FromBody] RegisterUserDto registerDto)
@@ -43,7 +43,7 @@ namespace Shop_ToysHG.Controllers
                 if (await _userRepository.UserExistsAsync(registerDto.Username, registerDto.Email))
                     return BadRequest(new { message = "Username ho?c email ?ã t?n t?i" });
 
-                // T?o User
+                // T?o User (ch? t?o User, ch?a t?o Customer)
                 var user = new User
                 {
                     Username = registerDto.Username,
@@ -55,23 +55,19 @@ namespace Shop_ToysHG.Controllers
 
                 var createdUser = await _userRepository.CreateAsync(user);
 
-                // T?o Customer profile
-                var customer = new Customer
-                {
-                    UserId = createdUser.Id,
-                    FullName = registerDto.FullName,
-                    Gender = 0
-                };
-
-                await _customerRepository.CreateAsync(customer);
-
-                // T?o Cart cho customer
-                await _cartRepository.CreateCartAsync(customer.Id);
-
                 return Ok(new
                 {
-                    message = "??ng ký thành công",
-                    user = MapToDto(createdUser)
+                    message = "??ng kí thành công. Vui lòng ??ng nh?p.",
+                    user = new UserDto
+                    {
+                        Id = createdUser.Id,
+                        Username = createdUser.Username,
+                        Email = createdUser.Email,
+                        Role = createdUser.Role,
+                        Status = createdUser.Status,
+                        IsCustomer = false,  // Ch?a là Customer
+                        CustomerId = null
+                    }
                 });
             }
             catch (Exception ex)

@@ -19,12 +19,16 @@ async function addToCart(productId, productName, price) {
     // Kiểm tra user đã đăng nhập
     if (!user) {
         alert('⚠️ Bạn cần đăng nhập trước!');
+        // Chuyển sang tab đăng nhập
+        switchUserTab('login');
         return;
     }
 
     // Kiểm tra user đã là Customer
     if (!user.isCustomer) {
         alert('⚠️ Bạn cần tạo hồ sơ Customer trước khi thêm sản phẩm vào giỏ!');
+        // Chuyển sang tab thêm customer
+        switchUserTab('register'); // hoặc có tab thêm customer riêng
         return;
     }
 
@@ -36,6 +40,7 @@ async function addToCart(productId, productName, price) {
 
     if (result.success) {
         showCartNotification(`✅ Đã thêm "${productName}" vào giỏ hàng`);
+        updateCartCount(); // Cập nhật số lượng giỏ
     } else {
         alert(`❌ Lỗi: ${result.error || 'Không thể thêm vào giỏ'}`);
     }
@@ -47,14 +52,20 @@ async function addToCart(productId, productName, price) {
 async function getCartItems() {
     const user = getCurrentUser();
     
+    // Nếu user chưa đăng nhập hoặc chưa là Customer, return mảng rỗng
+    // KHÔNG gọi API vì sẽ gây lỗi
     if (!user || !user.isCustomer) {
         return [];
     }
 
-    const result = await api.get(`/api/carts/customer/${user.customerId}`);
-    
-    if (result.success && result.data) {
-        return result.data.cartItems || [];
+    try {
+        const result = await api.get(`/api/carts/customer/${user.customerId}`);
+        
+        if (result.success && result.data) {
+            return result.data.cartItems || [];
+        }
+    } catch (error) {
+        console.error('Error getting cart items:', error);
     }
     
     return [];
