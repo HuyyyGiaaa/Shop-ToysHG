@@ -1,5 +1,5 @@
 /**
- * Service Quản lí Order
+ * Service Quản lý Đơn hàng
  */
 
 /**
@@ -407,4 +407,19 @@ async function loadOrderStats() {
     } else {
         container.innerHTML = `<p style="color: red;">❌ Lỗi: ${result.error}</p>`;
     }
+}
+
+/**
+ * Xem chi tiết Order
+ */
+async function viewOrder(orderId) {
+    const result = await api.get(`/api/orders/${orderId}`);
+    if (!result.success) {
+        alert('❌ Lỗi: ' + result.error);
+        return;
+    }
+
+    const order = result.data;
+    const itemsText = order.orderItems?.map(item => `- ${item.productId}: ${item.quantity}x ₫${Number(item.price).toLocaleString('vi-VN')}`).join('\n') || 'N/A';
+    alert(`Mã đơn: ${order.orderCode}\nTổng tiền: ₫${Number(order.totalAmount).toLocaleString('vi-VN')}\nStatus: ${order.status}\n\nItems:\n${itemsText}`);
 }

@@ -1,5 +1,5 @@
 /**
- * Service Quản lí User
+ * Service Quản lý Người dùng
  */
 
 /**
@@ -113,7 +113,7 @@ async function fetchAllUsers() {
                     </span></p>
                 </div>
                 <div class="user-actions">
-                    <button onclick="viewUserDetails(${user.id})" class="btn-view">🧐 Xem chi tiết</button>
+                    <button onclick="viewUser(${user.id})" class="btn-view">🧐 Xem chi tiết</button>
                     <button onclick="editUserStatus(${user.id}, ${user.status})" class="btn-edit">✏️ Sửa</button>
                     <button onclick="deleteUser(${user.id})" class="btn-delete">??? X�a</button>
                 </div>
@@ -197,25 +197,17 @@ async function handleRegister(event) {
 }
 
 /**
- * Xem chi tiết user
+ * Xem thông tin User
  */
-async function viewUserDetails(userId) {
+async function viewUser(userId) {
     const result = await api.get(`/api/users/${userId}`);
-
-    if (result.success) {
-        const user = result.data;
-        alert(`
-👤 Chi tiết người dùng:
-=======================
-ID: ${user.id}
-Tên: ${user.username}
-Email: ${user.email}
-Vai trò: ${user.role}
-Trạng thái: ${user.status === 1 ? 'Hoạt động' : 'Khóa'}
-        `);
-    } else {
-        alert(`❌ Lỗi: ${result.error}`);
+    if (!result.success) {
+        alert('❌ Lỗi: ' + result.error);
+        return;
     }
+
+    const user = result.data;
+    alert(`ID: ${user.id}\nUsername: ${user.username}\nEmail: ${user.email}\nRole: ${user.role}\nStatus: ${user.status === 1 ? 'Active' : 'Locked'}`);
 }
 
 /**

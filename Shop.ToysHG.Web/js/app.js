@@ -487,3 +487,120 @@ async function testConnection() {
 
 // Tự động load trang chủ khi mở
 loadHome();
+
+/**
+ * Load trang Người dùng (Admin)
+ */
+function loadUsers() {
+    const content = document.getElementById('content');
+    content.innerHTML = `
+        <div class="section">
+            <h2>👥 Quản lý Người dùng</h2>
+            <div id="users-list" class="management-list"></div>
+        </div>
+    `;
+    fetchUsers();
+}
+
+/**
+ * Lấy danh sách người dùng
+ */
+async function fetchUsers() {
+    const result = await api.get('/api/users');
+    const listDiv = document.getElementById('users-list');
+
+    if (result.success && Array.isArray(result.data)) {
+        const html = result.data.map(user => `
+            <div class="management-item">
+                <div class="item-info">
+                    <strong>${user.username}</strong> (${user.role})
+                    <br><small>Email: ${user.email} | Status: ${user.status === 1 ? '✅ Active' : '❌ Locked'}</small>
+                </div>
+                <div class="item-actions">
+                    <button onclick="viewUser(${user.id})" class="btn-edit">👁️ Xem</button>
+                </div>
+            </div>
+        `).join('');
+        listDiv.innerHTML = html;
+    } else {
+        listDiv.innerHTML = `<p style="color: red;">❌ Lỗi: ${result.error || 'Không thể lấy danh sách'}</p>`;
+    }
+}
+
+/**
+ * Load trang Khách hàng (Admin)
+ */
+function loadCustomers() {
+    const content = document.getElementById('content');
+    content.innerHTML = `
+        <div class="section">
+            <h2>👤 Quản lý Khách hàng</h2>
+            <div id="customers-list" class="management-list"></div>
+        </div>
+    `;
+    fetchCustomers();
+}
+
+/**
+ * Lấy danh sách khách hàng
+ */
+async function fetchCustomers() {
+    const result = await api.get('/api/customers');
+    const listDiv = document.getElementById('customers-list');
+
+    if (result.success && Array.isArray(result.data)) {
+        const html = result.data.map(customer => `
+            <div class="management-item">
+                <div class="item-info">
+                    <strong>${customer.fullName}</strong>
+                    <br><small>SĐT: ${customer.phone || 'N/A'} | Địa chỉ: ${customer.address || 'N/A'}</small>
+                </div>
+                <div class="item-actions">
+                    <button onclick="viewCustomer(${customer.id})" class="btn-edit">👁️ Xem</button>
+                </div>
+            </div>
+        `).join('');
+        listDiv.innerHTML = html;
+    } else {
+        listDiv.innerHTML = `<p style="color: red;">❌ Lỗi: ${result.error || 'Không thể lấy danh sách'}</p>`;
+    }
+}
+
+/**
+ * Load trang Đơn hàng
+ */
+function loadOrders() {
+    const content = document.getElementById('content');
+    content.innerHTML = `
+        <div class="section">
+            <h2>📋 Đơn hàng</h2>
+            <div id="orders-list" class="management-list"></div>
+        </div>
+    `;
+    fetchOrders();
+}
+
+/**
+ * Lấy danh sách đơn hàng
+ */
+async function fetchOrders() {
+    const result = await api.get('/api/orders');
+    const listDiv = document.getElementById('orders-list');
+
+    if (result.success && Array.isArray(result.data)) {
+        const html = result.data.map(order => `
+            <div class="management-item">
+                <div class="item-info">
+                    <strong>${order.orderCode}</strong> - ₫${Number(order.totalAmount).toLocaleString('vi-VN')}
+                    <br><small>Status: ${order.status} | Ngày: ${new Date(order.createdAt).toLocaleDateString('vi-VN')}</small>
+                </div>
+                <div class="item-actions">
+                    <button onclick="viewOrder(${order.id})" class="btn-edit">👁️ Xem chi tiết</button>
+                </div>
+            </div>
+        `).join('');
+        listDiv.innerHTML = html;
+    } else {
+        listDiv.innerHTML = `<p style="color: red;">❌ Lỗi: ${result.error || 'Không thể lấy danh sách'}</p>`;
+    }
+}
