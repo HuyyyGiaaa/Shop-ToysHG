@@ -38,8 +38,8 @@ function renderNavigation() {
     menuHTML += '<button onclick="loadHome()">🏠 Trang chủ</button>';
     menuHTML += '<button onclick="loadProducts()">📦 Sản phẩm</button>';
 
-    // Giỏ hàng + Đơn hàng (CUSTOMER + ADMIN)
-    if (user.role !== 'ANONYMOUS') {
+    // Giỏ hàng + Đơn hàng (CUSTOMER ONLY)
+    if (user.role === 'CUSTOMER') {
         menuHTML += '<button onclick="loadCart()">🛒 Giỏ hàng</button>';
         menuHTML += '<button onclick="loadOrders()">📋 Đơn hàng</button>';
     }
@@ -93,7 +93,7 @@ function loadHome() {
     } else if (user.role === 'CUSTOMER') {
         welcomeText = `Xin chào ${user.username}! Chào mừng đến ShopToysHG!`;
     } else if (user.role === 'ADMIN') {
-        welcomeText = `Xin chào Admin ${user.username}! Chào mừng đến ShopToysHG!`;
+        welcomeText = `Xin chào Admin ${user.username}! Chào mừng đến trang quản trị!`;
     }
     
     content.innerHTML = `
@@ -102,14 +102,14 @@ function loadHome() {
             <p>${welcomeText}</p>
             <p>Đây là ứng dụng Frontend kết nối với Backend .NET Core 9</p>
             <p>Tổng cộng: <strong id="total-products">0</strong> sản phẩm</p>
-            ${user.role !== 'ANONYMOUS' ? '<p>Giỏ hàng: <strong id="cart-count">0</strong> sản phẩm</p>' : ''}
+            ${user.role === 'CUSTOMER' ? '<p>Giỏ hàng: <strong id="cart-count">0</strong> sản phẩm</p>' : ''}
             <button onclick="loadProducts()">Xem tất cả sản phẩm</button>
-            ${user.role !== 'ANONYMOUS' ? '<button onclick="loadCart()">Xem giỏ hàng</button>' : ''}
+            ${user.role === 'CUSTOMER' ? '<button onclick="loadCart()">Xem giỏ hàng</button>' : ''}
             <button onclick="testConnection()">Test kết nối</button>
         </div>
     `;
     fetchTotalProducts();
-    if (user.role !== 'ANONYMOUS') {
+    if (user.role === 'CUSTOMER') {
         updateCartCount();
     }
 }

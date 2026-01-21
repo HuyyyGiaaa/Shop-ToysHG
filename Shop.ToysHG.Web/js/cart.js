@@ -23,6 +23,12 @@ async function addToCart(productId, productName, price) {
         return;
     }
 
+    // ADMIN không thể thêm giỏ hàng
+    if (user.role === 'ADMIN') {
+        alert('⚠️ Admin không có chức năng thêm giỏ hàng!');
+        return;
+    }
+
     // Kiểm tra user là CUSTOMER và có Customer profile
     // ADMIN không cần có Customer profile
     if (user.role === 'CUSTOMER' && !user.isCustomer) {
@@ -62,9 +68,8 @@ async function getCartItems() {
         return [];
     }
     
-    // ADMIN không cần kiểm tra isCustomer
-    // CUSTOMER cần có Customer profile
-    if (user.role === 'CUSTOMER' && !user.isCustomer) {
+    // Kiểm tra customerId (Admin + CUSTOMER đều có)
+    if (!user.customerId) {
         return [];
     }
 
@@ -137,12 +142,8 @@ async function getCartTotal() {
 async function clearCart() {
     const user = getCurrentUser();
     
-    // ANONYMOUS hoặc CUSTOMER chưa có profile - không thể xóa giỏ
-    if (user.role === 'ANONYMOUS') {
-        return;
-    }
-    
-    if (user.role === 'CUSTOMER' && !user.isCustomer) {
+    // ANONYMOUS hoặc không có customerId - không thể xóa giỏ
+    if (user.role === 'ANONYMOUS' || !user.customerId) {
         return;
     }
 

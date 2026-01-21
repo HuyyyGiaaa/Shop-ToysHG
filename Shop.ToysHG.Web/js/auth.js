@@ -3,17 +3,44 @@
  */
 
 // Lưu trữ User hiển thị - Mặc định là anonymous
-let currentUser = localStorage.getItem('currentUser') 
-    ? JSON.parse(localStorage.getItem('currentUser')) 
-    : {
+let currentUser = (() => {
+    const stored = localStorage.getItem('currentUser');
+    
+    // Nếu không có stored user, trả về anonymous mới
+    if (!stored) {
+        return getAnonymousUser();
+    }
+    
+    // Nếu có stored user, lấy từ localStorage
+    try {
+        const user = JSON.parse(stored);
+        // Kiểm tra user object có hợp lệ không
+        if (user && user.role) {
+            return user;
+        }
+    } catch (e) {
+        // Nếu corrupt, reset
+        localStorage.removeItem('currentUser');
+        return getAnonymousUser();
+    }
+    
+    return getAnonymousUser();
+})();
+
+/**
+ * Tạo anonymous user object
+ */
+function getAnonymousUser() {
+    return {
         id: null,
         username: 'Anonymous',
         email: null,
-        role: 'ANONYMOUS',  // ← Mặc định anonymous
+        role: 'ANONYMOUS',
         status: 1,
         isCustomer: false,
         customerId: null
     };
+}
 
 /**
  * Đăng kí tài khoản mới
@@ -56,15 +83,7 @@ async function loginUser(username, password) {
  */
 function logoutUser() {
     // Reset về anonymous
-    currentUser = {
-        id: null,
-        username: 'Anonymous',
-        email: null,
-        role: 'ANONYMOUS',
-        status: 1,
-        isCustomer: false,
-        customerId: null
-    };
+    currentUser = getAnonymousUser();
     localStorage.removeItem('currentUser');
     
     // Cập nhật menu sau khi logout
