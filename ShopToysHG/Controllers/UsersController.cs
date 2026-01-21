@@ -43,13 +43,17 @@ namespace Shop_ToysHG.Controllers
                 if (await _userRepository.UserExistsAsync(registerDto.Username, registerDto.Email))
                     return BadRequest(new { message = "Username ho?c email ?ã t?n t?i" });
 
-                // T?o User (ch? t?o User, ch?a t?o Customer)
+                // L?y Role CUSTOMER (m?c ??nh RoleId = 3)
+                // Gi? s? Roles: 1=ADMIN, 2=STAFF, 3=CUSTOMER
+                const int customerRoleId = 3;
+
+                // T?o User
                 var user = new User
                 {
                     Username = registerDto.Username,
                     Email = registerDto.Email,
                     PasswordHash = HashPassword(registerDto.Password),
-                    Role = "CUSTOMER",
+                    RoleId = customerRoleId,
                     Status = 1
                 };
 
@@ -63,9 +67,9 @@ namespace Shop_ToysHG.Controllers
                         Id = createdUser.Id,
                         Username = createdUser.Username,
                         Email = createdUser.Email,
-                        Role = createdUser.Role,
+                        Role = "CUSTOMER",
                         Status = createdUser.Status,
-                        IsCustomer = false,  // Ch?a là Customer
+                        IsCustomer = false,
                         CustomerId = null
                     }
                 });
@@ -91,7 +95,7 @@ namespace Shop_ToysHG.Controllers
                 var user = await _userRepository.GetByUsernameAsync(loginDto.Username);
 
                 if (user == null || !VerifyPassword(loginDto.Password, user.PasswordHash))
-                    return Unauthorized(new { message = "Username ho?c password không ?úng" });
+                    return Unauthorized(new { message = "Username ho?c password không ??ng" });
 
                 if (user.Status == 0)
                     return Unauthorized(new { message = "Tài kho?n ?ã b? khóa" });

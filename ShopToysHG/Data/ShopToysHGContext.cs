@@ -11,6 +11,7 @@ namespace Shop_ToysHG.Data
 
         public DbSet<Product> Products { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<Role> Roles { get; set; }
         public DbSet<Customer> Customers { get; set; }
         public DbSet<Cart> Carts { get; set; }
         public DbSet<CartItem> CartItems { get; set; }
@@ -20,6 +21,12 @@ namespace Shop_ToysHG.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Configure Roles table
+            modelBuilder.Entity<Role>().HasKey(r => r.Id);
+            modelBuilder.Entity<Role>()
+                .HasIndex(r => r.Name)
+                .IsUnique();
 
             // Configure Products table
             modelBuilder.Entity<Product>().HasKey(p => p.Id);
@@ -35,6 +42,13 @@ namespace Shop_ToysHG.Data
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
+
+            // Configure User - Role relationship (Many-to-One)
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.Role)
+                .WithMany(r => r.Users)
+                .HasForeignKey(u => u.RoleId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Configure Customer - User relationship (One-to-One)
             modelBuilder.Entity<Customer>()

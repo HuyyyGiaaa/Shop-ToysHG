@@ -1,9 +1,19 @@
 /**
- * Service Xác thực và Quản lí User
+ * Service Xác thực và Quản lý User
  */
 
-// Lưu trữ User hiển thị
-let currentUser = localStorage.getItem('currentUser') ? JSON.parse(localStorage.getItem('currentUser')) : null;
+// Lưu trữ User hiển thị - Mặc định là anonymous
+let currentUser = localStorage.getItem('currentUser') 
+    ? JSON.parse(localStorage.getItem('currentUser')) 
+    : {
+        id: null,
+        username: 'Anonymous',
+        email: null,
+        role: 'ANONYMOUS',  // ← Mặc định anonymous
+        status: 1,
+        isCustomer: false,
+        customerId: null
+    };
 
 /**
  * Đăng kí tài khoản mới
@@ -39,9 +49,17 @@ async function loginUser(username, password) {
  * Đăng xuất
  */
 function logoutUser() {
-    currentUser = null;
+    // Reset về anonymous
+    currentUser = {
+        id: null,
+        username: 'Anonymous',
+        email: null,
+        role: 'ANONYMOUS',
+        status: 1,
+        isCustomer: false,
+        customerId: null
+    };
     localStorage.removeItem('currentUser');
-    localStorage.removeItem('cart');
 }
 
 /**
@@ -55,5 +73,5 @@ function getCurrentUser() {
  * Kiểm tra user đã đăng nhập
  */
 function isUserLoggedIn() {
-    return currentUser !== null;
+    return currentUser && currentUser.role !== 'ANONYMOUS';
 }

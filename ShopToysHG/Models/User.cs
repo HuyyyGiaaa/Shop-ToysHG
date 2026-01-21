@@ -21,8 +21,8 @@ namespace Shop_ToysHG.Models
         public string Email { get; set; } = string.Empty;
 
         [Required]
-        [StringLength(20)]
-        public string Role { get; set; } = "CUSTOMER"; // ADMIN, STAFF, CUSTOMER
+        [ForeignKey("Role")]
+        public int RoleId { get; set; }
 
         [Required]
         public int Status { get; set; } = 1; // 1: active, 0: locked
@@ -32,6 +32,7 @@ namespace Shop_ToysHG.Models
         public DateTime UpdatedAt { get; set; } = DateTime.Now;
 
         // Navigation
+        public virtual Role? Role { get; set; }
         public virtual Customer? Customer { get; set; }
     }
 }

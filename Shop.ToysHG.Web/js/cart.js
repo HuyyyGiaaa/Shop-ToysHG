@@ -16,10 +16,9 @@ function isCustomer() {
 async function addToCart(productId, productName, price) {
     const user = getCurrentUser();
     
-    // Kiểm tra user đã đăng nhập
-    if (!user) {
+    // Kiểm tra user có phải ANONYMOUS không
+    if (user.role === 'ANONYMOUS') {
         alert('⚠️ Bạn cần đăng nhập trước!');
-        // Chuyển sang tab đăng nhập
         switchUserTab('login');
         return;
     }
@@ -27,8 +26,7 @@ async function addToCart(productId, productName, price) {
     // Kiểm tra user đã là Customer
     if (!user.isCustomer) {
         alert('⚠️ Bạn cần tạo hồ sơ Customer trước khi thêm sản phẩm vào giỏ!');
-        // Chuyển sang tab thêm customer
-        switchUserTab('register'); // hoặc có tab thêm customer riêng
+        switchUserTab('register');
         return;
     }
 
