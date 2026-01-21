@@ -5,6 +5,7 @@
 // Khởi tạo khi tải trang
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Ứng dụng đã tải');
+    renderNavigation(); // ← Render menu theo role
     checkBackendStatus();
 });
 
@@ -25,122 +26,92 @@ async function checkBackendStatus() {
 }
 
 /**
+ * Render Navigation Menu theo Role
+ */
+function renderNavigation() {
+    const nav = document.querySelector('nav');
+    const user = getCurrentUser();
+    
+    let menuHTML = '';
+
+    // Tất cả role
+    menuHTML += '<button onclick="loadHome()">🏠 Trang chủ</button>';
+    menuHTML += '<button onclick="loadProducts()">📦 Sản phẩm</button>';
+
+    // Giỏ hàng + Đơn hàng (CUSTOMER + ADMIN)
+    if (user.role !== 'ANONYMOUS') {
+        menuHTML += '<button onclick="loadCart()">🛒 Giỏ hàng</button>';
+        menuHTML += '<button onclick="loadOrders()">📋 Đơn hàng</button>';
+    }
+
+    // Người dùng + Khách hàng + Quản lý (ADMIN ONLY)
+    if (user.role === 'ADMIN') {
+        menuHTML += '<button onclick="loadUsers()">👥 Người dùng</button>';
+        menuHTML += '<button onclick="loadCustomers()">👤 Khách hàng</button>';
+        menuHTML += '<button onclick="loadManagement()">⚙️ Quản lý</button>';
+    }
+
+    // Test kết nối (Tất cả)
+    menuHTML += '<button onclick="testConnection()">🔧 Test kết nối</button>';
+
+    // Đăng nhập / Đăng ký (ANONYMOUS ONLY)
+    if (user.role === 'ANONYMOUS') {
+        menuHTML += '<button onclick="switchUserTab(\'login\')">🔑 Đăng nhập</button>';
+        menuHTML += '<button onclick="switchUserTab(\'register\')">✍️ Đăng ký</button>';
+    }
+
+    // Đăng xuất (CUSTOMER + ADMIN)
+    if (user.role !== 'ANONYMOUS') {
+        menuHTML += '<button onclick="handleLogout()" style="background: #dc3545;">🚪 Đăng xuất</button>';
+    }
+
+    nav.innerHTML = menuHTML;
+}
+
+/**
+ * Xử lý Đăng xuất
+ */
+function handleLogout() {
+    if (confirm('Bạn có chắc chắn muốn đăng xuất?')) {
+        logoutUser();
+        renderNavigation(); // Cập nhật menu
+        loadHome(); // Quay lại trang chủ
+        alert('✅ Đăng xuất thành công!');
+    }
+}
+
+/**
  * Load trang chủ
  */
 function loadHome() {
+    const user = getCurrentUser();
     const content = document.getElementById('content');
+    
+    let welcomeText = '';
+    if (user.role === 'ANONYMOUS') {
+        welcomeText = 'Chào mừng khách! Vui lòng đăng nhập để mua sắm.';
+    } else if (user.role === 'CUSTOMER') {
+        welcomeText = `Xin chào ${user.username}! Chào mừng đến ShopToysHG!`;
+    } else if (user.role === 'ADMIN') {
+        welcomeText = `Xin chào Admin ${user.username}! Chào mừng đến ShopToysHG!`;
+    }
+    
     content.innerHTML = `
         <div class="section">
             <h2>🏠 Trang chủ</h2>
-            <p>Chào mừng đến ShopToysHG!</p>
+            <p>${welcomeText}</p>
             <p>Đây là ứng dụng Frontend kết nối với Backend .NET Core 9</p>
             <p>Tổng cộng: <strong id="total-products">0</strong> sản phẩm</p>
-            <p>Giỏ hàng: <strong id="cart-count">0</strong> sản phẩm</p>
+            ${user.role !== 'ANONYMOUS' ? '<p>Giỏ hàng: <strong id="cart-count">0</strong> sản phẩm</p>' : ''}
             <button onclick="loadProducts()">Xem tất cả sản phẩm</button>
-            <button onclick="loadCart()">Xem giỏ hàng</button>
+            ${user.role !== 'ANONYMOUS' ? '<button onclick="loadCart()">Xem giỏ hàng</button>' : ''}
             <button onclick="testConnection()">Test kết nối</button>
         </div>
     `;
     fetchTotalProducts();
-}
-
-/**
- * Lấy tổng số sản phẩm
- */
-async function fetchTotalProducts() {
-    const result = await api.get('/api/products');
-    if (result.success) {
-        document.getElementById('total-products').textContent = result.data.length;
+    if (user.role !== 'ANONYMOUS') {
+        updateCartCount();
     }
-}
-
-/**
- * Cập nhật số lượng giỏ hàng
- */
-async function updateCartCount() {
-    const count = await getCartCount();
-    const cartCountElements = document.querySelectorAll('#cart-count');
-    cartCountElements.forEach(el => {
-        el.textContent = count;
-    });
-}
-
-/**
- * Load giỏ hàng
- */
-async function loadCart() {
-    const content = document.getElementById('content');
-    const items = await getCartItems();
-    const total = await getCartTotal();
-    const count = await getCartCount();
-
-    if (items.length === 0) {
-        content.innerHTML = `
-            <div class="section">
-                <h2>🛒 Giỏ hàng</h2>
-                <p>Giỏ hàng của bạn trống</p>
-                <button onclick="loadProducts()">Tiếp tục mua sắm</button>
-            </div>
-        `;
-        return;
-    }
-
-    let cartHTML = `
-        <div class="section">
-            <h2>🛒 Giỏ hàng (${count} sản phẩm)</h2>
-            
-            <div style="overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-                    <thead>
-                        <tr style="background: #f8f9fa; border-bottom: 2px solid #dee2e6;">
-                            <th style="padding: 10px; text-align: left;">Sản phẩm</th>
-                            <th style="padding: 10px; text-align: center;">Giá</th>
-                            <th style="padding: 10px; text-align: center;">Số lượng</th>
-                            <th style="padding: 10px; text-align: right;">Tổng</th>
-                            <th style="padding: 10px; text-align: center;">Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-    `;
-
-    items.forEach(item => {
-        cartHTML += `
-            <tr style="border-bottom: 1px solid #dee2e6;">
-                <td style="padding: 10px;">${item.productName}</td>
-                <td style="padding: 10px; text-align: center;">₫${Number(item.productPrice).toLocaleString('vi-VN')}</td>
-                <td style="padding: 10px; text-align: center;">
-                    <input type="number" 
-                        value="${item.quantity}" 
-                        min="1" 
-                        onchange="updateCartQuantity(${item.id}, this.value)"
-                        style="width: 60px; padding: 5px; border: 1px solid #dee2e6; border-radius: 3px;">
-                </td>
-                <td style="padding: 10px; text-align: right;">₫${Number(item.subtotal).toLocaleString('vi-VN')}</td>
-                <td style="padding: 10px; text-align: center;">
-                    <button onclick="removeFromCart(${item.id})" class="btn-delete" style="padding: 5px 10px;">🗑️</button>
-                </td>
-            </tr>
-        `;
-    });
-
-    cartHTML += `
-                    </tbody>
-                </table>
-            </div>
-
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                <h3>Tóm tắt giỏ hàng</h3>
-                <p><strong>Tổng tiền:</strong> <span style="font-size: 1.5em; color: #dc3545;">₫${Number(total).toLocaleString('vi-VN')}</span></p>
-            </div>
-
-            <div style="display: flex; gap: 10px;">
-                <button onclick="loadProducts()" style="background: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">← Tiếp tục mua sắm</button>
-                <button onclick="proceedToCheckout()" style="background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">💳 Thanh toán</button>
-                <button onclick="clearCart(); loadCart();" style="background: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">🗑️ Xóa giỏ</button>
-            </div>
-        </div>
-    `;
-    content.innerHTML = cartHTML;
 }
 
 /**
@@ -515,4 +486,4 @@ async function testConnection() {
 }
 
 // Tự động load trang chủ khi mở
-loadHome();loadHome();
+loadHome();

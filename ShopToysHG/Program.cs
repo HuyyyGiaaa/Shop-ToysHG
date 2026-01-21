@@ -1,6 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Shop_ToysHG.Data;
 using Shop_ToysHG.Repositories;
+using Shop_ToysHG.Models;
+using System.Security.Cryptography;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +40,13 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Seed data
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<ShopToysHGContext>();
+    SeedData(context);
+}
+
 // Configure the HTTP request pipeline.
 app.UseSwagger();
 app.UseSwaggerUI();
@@ -50,3 +60,71 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+/// <summary>
+/// Seed d? li?u m?c ??nh
+/// </summary>
+void SeedData(ShopToysHGContext context)
+{
+    // Seed Roles
+    if (!context.Roles.Any())
+    {
+        var roles = new List<Role>
+        {
+            new Role { Id = 1, Name = "ADMIN", Description = "Qu?n tr? viên", CreatedAt = DateTime.Now },
+            new Role { Id = 2, Name = "STAFF", Description = "Nhân viên", CreatedAt = DateTime.Now },
+            new Role { Id = 3, Name = "CUSTOMER", Description = "Khách hàng", CreatedAt = DateTime.Now }
+        };
+        context.Roles.AddRange(roles);
+        context.SaveChanges();
+    }
+
+    // Seed Admin User
+    if (!context.Users.Any(u => u.Username == "admin"))
+    {
+        var adminRole = context.Roles.First(r => r.Name == "ADMIN");
+        var adminUser = new User
+        {
+            Username = "admin",
+            Email = "admin@shoptoyshg.com",
+            PasswordHash = HashPassword("admin123"),
+            RoleId = adminRole.Id,
+            Status = 1,
+            CreatedAt = DateTime.Now
+        };
+        context.Users.Add(adminUser);
+        context.SaveChanges();
+
+        // T?o Admin Customer + Cart
+        var adminCustomer = new Customer
+        {
+            UserId = adminUser.Id,
+            FullName = "Administrator",
+            Gender = 1,
+            CreatedAt = DateTime.Now
+        };
+        context.Customers.Add(adminCustomer);
+        context.SaveChanges();
+
+        // T?o Cart cho Admin
+        var adminCart = new Cart
+        {
+            CustomerId = adminCustomer.Id,
+            CreatedAt = DateTime.Now
+        };
+        context.Carts.Add(adminCart);
+        context.SaveChanges();
+    }
+}
+
+/// <summary>
+/// Hash password
+/// </summary>
+string HashPassword(string password)
+{
+    using (var sha256 = SHA256.Create())
+    {
+        var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
+        return Convert.ToBase64String(hashedBytes);
+    }
+}

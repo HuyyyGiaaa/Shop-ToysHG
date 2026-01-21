@@ -53,14 +53,14 @@ namespace Shop_ToysHG.Models
 
         [Required]
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal Price { get; set; } // Giá t?i th?i ?i?m mua
+        public decimal Price { get; set; }
 
         [Required]
         public int Quantity { get; set; }
 
         [Required]
         [Column(TypeName = "decimal(18, 2)")]
-        public decimal Subtotal { get; set; } // price * quantity
+        public decimal Subtotal { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 

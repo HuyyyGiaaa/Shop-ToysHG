@@ -23,10 +23,17 @@ async function addToCart(productId, productName, price) {
         return;
     }
 
-    // Kiểm tra user đã là Customer
-    if (!user.isCustomer) {
+    // Kiểm tra user là CUSTOMER và có Customer profile
+    // ADMIN không cần có Customer profile
+    if (user.role === 'CUSTOMER' && !user.isCustomer) {
         alert('⚠️ Bạn cần tạo hồ sơ Customer trước khi thêm sản phẩm vào giỏ!');
         switchUserTab('register');
+        return;
+    }
+
+    // Kiểm tra customerId có tồn tại không (ADMIN + CUSTOMER)
+    if (!user.customerId) {
+        alert('❌ Lỗi: Không tìm thấy Customer ID. Vui lòng tạo hồ sơ Customer.');
         return;
     }
 
@@ -50,9 +57,14 @@ async function addToCart(productId, productName, price) {
 async function getCartItems() {
     const user = getCurrentUser();
     
-    // Nếu user chưa đăng nhập hoặc chưa là Customer, return mảng rỗng
-    // KHÔNG gọi API vì sẽ gây lỗi
-    if (!user || !user.isCustomer) {
+    // ANONYMOUS không thể lấy giỏ
+    if (user.role === 'ANONYMOUS') {
+        return [];
+    }
+    
+    // ADMIN không cần kiểm tra isCustomer
+    // CUSTOMER cần có Customer profile
+    if (user.role === 'CUSTOMER' && !user.isCustomer) {
         return [];
     }
 
@@ -125,7 +137,12 @@ async function getCartTotal() {
 async function clearCart() {
     const user = getCurrentUser();
     
-    if (!user || !user.isCustomer) {
+    // ANONYMOUS hoặc CUSTOMER chưa có profile - không thể xóa giỏ
+    if (user.role === 'ANONYMOUS') {
+        return;
+    }
+    
+    if (user.role === 'CUSTOMER' && !user.isCustomer) {
         return;
     }
 

@@ -39,6 +39,12 @@ async function loginUser(username, password) {
     if (result.success && result.data.user) {
         currentUser = result.data.user;
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        
+        // Cập nhật menu sau khi login
+        if (typeof renderNavigation === 'function') {
+            renderNavigation();
+        }
+        
         return { success: true, user: currentUser };
     }
     
@@ -60,6 +66,11 @@ function logoutUser() {
         customerId: null
     };
     localStorage.removeItem('currentUser');
+    
+    // Cập nhật menu sau khi logout
+    if (typeof renderNavigation === 'function') {
+        renderNavigation();
+    }
 }
 
 /**

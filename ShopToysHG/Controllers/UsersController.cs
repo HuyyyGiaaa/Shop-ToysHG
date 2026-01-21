@@ -173,14 +173,14 @@ namespace Shop_ToysHG.Controllers
                 {
                     Email = updateDto.Email,
                     Status = updateDto.Status,
-                    Role = updateDto.Role
+                    RoleId = 3  // M?c ??nh CUSTOMER (RoleId=3)
                 };
 
                 var updatedUser = await _userRepository.UpdateAsync(id, user);
                 return Ok(new
                 {
                     message = "C?p nh?t thành công",
-                    user = MapToDto(updatedUser)
+                    user = await MapToDtoAsync(updatedUser)
                 });
             }
             catch (KeyNotFoundException ex)
@@ -224,12 +224,15 @@ namespace Shop_ToysHG.Controllers
             // Ki?m tra user có ph?i là Customer không
             var customer = await _customerRepository.GetByUserIdAsync(user.Id);
             
+            // L?y role name t? RoleId
+            string roleName = user.Role?.Name ?? "CUSTOMER";
+            
             return new UserDto
             {
                 Id = user.Id,
                 Username = user.Username,
                 Email = user.Email,
-                Role = user.Role,
+                Role = roleName,
                 Status = user.Status,
                 IsCustomer = customer != null,
                 CustomerId = customer?.Id
@@ -241,12 +244,14 @@ namespace Shop_ToysHG.Controllers
         /// </summary>
         private UserDto MapToDto(User user)
         {
+            string roleName = user.Role?.Name ?? "CUSTOMER";
+            
             return new UserDto
             {
                 Id = user.Id,
                 Username = user.Username,
                 Email = user.Email,
-                Role = user.Role,
+                Role = roleName,
                 Status = user.Status,
                 IsCustomer = false,
                 CustomerId = null
