@@ -1,0 +1,657 @@
+================================================================================
+                    SHOPTOYSHG - H??NG D?N HOÀN CH?NH
+                    Frontend + Backend + Database
+================================================================================
+
+?? M?C ?ÍCH D? ÁN
+================================================================================
+T?o website bán ?? ch?i có:
+- L?u tr? d? li?u trên MySQL
+- Backend .NET Core 9 API
+- Frontend Vanilla JavaScript
+- Phân quy?n: ANONYMOUS ? CUSTOMER ? ADMIN
+
+
+?? CÔNG NGH? S? D?NG
+================================================================================
+Backend:
+  - .NET Core 9
+  - Entity Framework Core
+  - MySQL 8.0
+  - API RESTful
+
+Frontend:
+  - Vanilla JavaScript (ES6+)
+  - HTML5
+  - CSS3
+  - localStorage
+
+
+?? DATABASE SCHEMA
+================================================================================
+
+1. Roles Table
+   ???????????????????????????????????
+   ? Id      ? Name      ? Description ?
+   ???????????????????????????????????
+   ? 1       ? ADMIN     ? Qu?n tr?    ?
+   ? 2       ? STAFF     ? Nhân viên    ?
+   ? 3       ? CUSTOMER  ? Khách hàng   ?
+   ???????????????????????????????????
+
+2. Users Table
+   Id | Username | Email | PasswordHash | RoleId | Status | CreatedAt
+
+3. Customers Table
+   Id | UserId | FullName | Phone | Address | Gender | BirthDate | CreatedAt
+
+4. Products Table
+   Id | Name | Description | Price | Stock | Category | CreatedAt
+
+5. Carts Table
+   Id | CustomerId | CreatedAt
+
+6. CartItems Table
+   Id | CartId | ProductId | Quantity | CreatedAt
+
+7. Orders Table
+   Id | CustomerId | OrderCode | TotalAmount | Status | ShippingAddress | CreatedAt
+
+8. OrderItems Table
+   Id | OrderId | ProductId | Price | Quantity | Subtotal | CreatedAt
+
+
+?? DATA FLOW - ??NG KÝ
+================================================================================
+
+FRONTEND INPUT:
+  Username: "john_doe"
+  Email: "john@example.com"
+  Password: "123456"
+  H? tên: "Johny Doe"
+  
+  ? POST /api/users/register
+  
+BACKEND PROCESS:
+  1. Validate d? li?u
+  2. Check username/email exists
+  3. Hash password (SHA256)
+  4. INSERT User vào MySQL
+  5. Return response
+  
+RESPONSE:
+  {
+    "success": true,
+    "message": "??ng ký thành công!",
+    "data": {
+      "user": {
+        "id": 5,
+        "username": "john_doe",
+        "email": "john@example.com",
+        "role": "CUSTOMER",
+        "status": 1,
+        "isCustomer": false,
+        "customerId": null
+      }
+    }
+  }
+  
+FRONTEND HANDLE:
+  - Alert "? ??ng ký thành công!"
+  - Chuy?n sang tab Login
+  - Auto-fill username
+
+
+?? DATA FLOW - ??NG NH?P
+================================================================================
+
+FRONTEND INPUT:
+  Username: "john_doe"
+  Password: "123456"
+  
+  ? POST /api/users/login
+  
+BACKEND PROCESS:
+  1. Tìm User by username
+  2. Verify password
+  3. Check status (active/locked)
+  4. Tìm Customer profile
+  5. Return response
+  
+RESPONSE:
+  {
+    "success": true,
+    "message": "??ng nh?p thành công!",
+    "data": {
+      "user": {
+        "id": 5,
+        "username": "john_doe",
+        "email": "john@example.com",
+        "role": "CUSTOMER",
+        "status": 1,
+        "isCustomer": false,
+        "customerId": null
+      }
+    }
+  }
+  
+FRONTEND HANDLE:
+  - currentUser = response.data.user
+  - localStorage.setItem('currentUser', JSON.stringify(currentUser))
+  - renderNavigation() ? C?p nh?t menu
+  - Menu: Home, Products, Cart, Orders, Logout
+  - Hi?n th?: "Xin chào john_doe!"
+
+
+?? DATA FLOW - T?O CUSTOMER PROFILE
+================================================================================
+
+FRONTEND INPUT (Khi CUSTOMER thêm vào gi? l?n ??u):
+  H? tên: "Johny Doe"
+  S?T: "0123456789"
+  ??a ch?: "123 ABC St"
+  Gi?i tính: 1 (Nam)
+  Ngày sinh: "1990-01-01"
+  
+  ? POST /api/customers
+  
+BACKEND PROCESS:
+  1. Validate d? li?u
+  2. INSERT Customer vào MySQL
+  3. T?o Cart m?i cho Customer
+  4. INSERT Cart vào MySQL
+  5. Return response
+  
+RESPONSE:
+  {
+    "success": true,
+    "message": "T?o Customer thành công!",
+    "data": {
+      "id": 1,
+      "userId": 5,
+      "fullName": "Johny Doe",
+      "phone": "0123456789",
+      "address": "123 ABC St",
+      "gender": 1,
+      "birthDate": "1990-01-01",
+      "cartId": 1
+    }
+  }
+  
+FRONTEND HANDLE:
+  - currentUser.isCustomer = true
+  - currentUser.customerId = 1
+  - localStorage update
+  - Alert "? T?o thành công!"
+
+
+?? DATA FLOW - THÊM VÀO GI? HÀNG
+================================================================================
+
+FRONTEND INPUT:
+  onclick="addToCart(2, 'G?u Bông', 50000)"
+  
+  ? Ki?m tra: user.role === 'ANONYMOUS'?
+    ? Alert "B?n c?n ??ng nh?p"
+    ? loadAuthForms()
+  
+  ? Ki?m tra: user.isCustomer?
+    ? N?u false: Yêu c?u t?o profile
+  
+  ? POST /api/carts/customer/1/add
+  {
+    "productId": 2,
+    "quantity": 1
+  }
+  
+BACKEND PROCESS:
+  1. Tìm Cart by customerId
+  2. Ki?m tra CartItem exist?
+     ? N?u có: UPDATE quantity += 1
+     ? N?u không: INSERT CartItem m?i
+  3. Return response
+  
+RESPONSE:
+  {
+    "success": true,
+    "message": "Thêm vào gi? thành công!",
+    "data": {
+      "cartItem": {
+        "id": 1,
+        "cartId": 1,
+        "productId": 2,
+        "quantity": 1
+      }
+    }
+  }
+  
+FRONTEND HANDLE:
+  - showCartNotification("? ?ã thêm G?u Bông vào gi?")
+  - updateCartCount()
+
+
+?? DATA FLOW - XEM GI? HÀNG
+================================================================================
+
+FRONTEND INPUT:
+  onclick="loadCart()"
+  
+  ? GET /api/carts/customer/1
+  
+BACKEND PROCESS:
+  1. SELECT * FROM Carts WHERE CustomerId = 1
+  2. SELECT * FROM CartItems WHERE CartId = cart.id
+  3. Populate Products info
+  4. Return response
+  
+RESPONSE:
+  {
+    "success": true,
+    "data": {
+      "cart": {
+        "id": 1,
+        "customerId": 1,
+        "cartItems": [
+          {
+            "id": 1,
+            "cartId": 1,
+            "productId": 2,
+            "quantity": 1,
+            "product": {
+              "id": 2,
+              "name": "G?u Bông",
+              "price": 50000,
+              "stock": 100
+            }
+          }
+        ]
+      }
+    }
+  }
+  
+FRONTEND HANDLE:
+  HTML hi?n th?:
+  ???????????????????????????????????
+  ? ?? Gi? Hàng                     ?
+  ???????????????????????????????????
+  ? G?u Bông x1                     ?
+  ? 50,000?                         ?
+  ? [Qty: 1] [Xóa]                  ?
+  ???????????????????????????????????
+  ? T?ng: 50,000?                   ?
+  ? [Thanh toán]                    ?
+  ???????????????????????????????????
+
+
+?? DATA FLOW - T?O ??N HÀNG
+================================================================================
+
+FRONTEND INPUT:
+  Nh?n "?? Thanh toán"
+  Nh?p: ??a ch? giao hàng
+  
+  ? POST /api/orders
+  {
+    "customerId": 1,
+    "totalAmount": 50000,
+    "shippingAddress": "456 XYZ St",
+    "orderItems": [
+      {
+        "productId": 2,
+        "price": 50000,
+        "quantity": 1,
+        "subtotal": 50000
+      }
+    ]
+  }
+  
+BACKEND PROCESS:
+  1. T?o Order m?i
+  2. INSERT Order vào MySQL
+  3. T?o OrderItems
+  4. INSERT OrderItems vào MySQL
+  5. DELETE CartItems (xóa gi?)
+  6. Return response
+  
+RESPONSE:
+  {
+    "success": true,
+    "message": "T?o ??n hàng thành công!",
+    "data": {
+      "order": {
+        "id": 1,
+        "orderCode": "ORD-2026-001",
+        "customerId": 1,
+        "totalAmount": 50000,
+        "status": "PENDING",
+        "shippingAddress": "456 XYZ St"
+      }
+    }
+  }
+  
+FRONTEND HANDLE:
+  - Alert "? T?o ??n hàng thành công!"
+  - clearCart()
+  - loadHome()
+
+
+?? PHÂN QUY?N
+================================================================================
+
+ANONYMOUS (Ch?a ??ng nh?p):
+  ? Xem trang ch?
+  ? Xem s?n ph?m
+  ? Thêm gi? hàng
+  ? Xem gi? hàng
+  ? Xem ??n hàng
+  ? Qu?n lý
+  Menu: Home, Products, Test Connection, Login, Register
+
+CUSTOMER (?ã ??ng nh?p + Có Customer profile):
+  ? Xem trang ch?
+  ? Xem s?n ph?m
+  ? Thêm gi? hàng
+  ? Xem gi? hàng
+  ? Xem ??n hàng
+  ? Qu?n lý
+  Menu: Home, Products, Cart, Orders, Test Connection, Logout
+
+ADMIN (Role = ADMIN):
+  ? Xem trang ch?
+  ? Xem s?n ph?m (không thêm gi?)
+  ? Qu?n lý s?n ph?m (CRUD)
+  ? Qu?n lý Users
+  ? Qu?n lý Customers
+  ? Qu?n lý ??n hàng
+  Menu: Home, Products, Users, Customers, Management, Test Connection, Logout
+
+
+?? FILE STRUCTURE
+================================================================================
+
+Backend:
+  ShopToysHG/
+  ??? Controllers/
+  ?   ??? UsersController.cs
+  ?   ??? CustomersController.cs
+  ?   ??? ProductsController.cs
+  ?   ??? CartsController.cs
+  ?   ??? OrdersController.cs
+  ??? Models/
+  ?   ??? User.cs
+  ?   ??? Role.cs
+  ?   ??? Customer.cs
+  ?   ??? Product.cs
+  ?   ??? Cart.cs
+  ?   ??? CartItem.cs
+  ?   ??? Order.cs
+  ?   ??? OrderItem.cs
+  ??? Repositories/
+  ?   ??? IUserRepository.cs
+  ?   ??? UserRepository.cs
+  ?   ??? ICustomerRepository.cs
+  ?   ??? CustomerRepository.cs
+  ?   ??? IProductRepository.cs
+  ?   ??? ProductRepository.cs
+  ?   ??? ICartRepository.cs
+  ?   ??? CartRepository.cs
+  ?   ??? IOrderRepository.cs
+  ?   ??? OrderRepository.cs
+  ??? DTOs/
+  ?   ??? UserDto.cs
+  ?   ??? CustomerDto.cs
+  ?   ??? ProductDto.cs
+  ?   ??? CartDto.cs
+  ?   ??? OrderDto.cs
+  ??? Data/
+  ?   ??? ShopToysHGContext.cs
+  ??? Migrations/
+  ??? Program.cs
+  ??? appsettings.json
+  ??? Shop ToysHG.csproj
+
+Frontend:
+  Shop.ToysHG.Web/
+  ??? index.html
+  ??? js/
+  ?   ??? config.js (Backend URL)
+  ?   ??? api.js (API calls)
+  ?   ??? auth.js (Login/Register/Logout)
+  ?   ??? app.js (Main UI)
+  ?   ??? cart.js (Cart operations)
+  ?   ??? user.js (User management)
+  ?   ??? customer.js (Customer management)
+  ?   ??? order.js (Order management)
+  ??? css/
+  ?   ??? style.css (Main styles)
+  ?   ??? utilities.css (Utilities)
+  ??? TEST_CONSOLE.js (Test helpers)
+  ??? PROJECT_GUIDE.txt (This file)
+
+
+?? H??NG D?N CH?Y PROJECT
+================================================================================
+
+1. BACKEND (.NET Core 9)
+   cd "D:\vsstudio\Shop ToysHG\ShopToysHG"
+   dotnet run
+   
+   ? Backend s? ch?y t?i http://localhost:5000
+   ? Swagger UI: http://localhost:5000/swagger
+
+2. FRONTEND (Vanilla JS)
+   M? browser: http://localhost:5500/index.html
+   
+   Ho?c s? d?ng Live Server:
+   - VS Code: Right-click index.html ? Open with Live Server
+   
+   ? Frontend s? ch?y t?i http://localhost:5500
+
+3. DATABASE (MySQL)
+   - MySQL Server ph?i ch?y
+   - Database: shoptoyshg (t? t?o)
+   - Config connection string trong appsettings.json
+
+
+?? SEED DATA (D? li?u m?c ??nh)
+================================================================================
+
+Khi backend ch?y l?n ??u:
+  ? T?o t?t c? tables
+  ? Seed Roles: ADMIN, STAFF, CUSTOMER
+  ? Seed Admin User: admin/admin123
+  ? Seed Admin Customer + Cart
+
+Test Admin:
+  Username: admin
+  Password: admin123
+
+
+?? TEST CONSOLE COMMANDS
+================================================================================
+
+M? DevTools (F12) ? Console tab ? Gõ các l?nh:
+
+Ki?m tra d? li?u:
+  help()                        - Xem t?t c? l?nh
+  checkAllData()                - Ki?m tra user + cart
+  console.log(getCurrentUser()) - Xem user hi?n t?i
+
+User operations:
+  loginUser('admin', 'admin123').then(r => console.log(r))
+  logoutUser()
+  isUserLoggedIn()
+
+Cart operations:
+  addToCart(1, 'G?u', 50000)
+  getCartItems()
+  getCartTotal()
+  getCartCount()
+  removeFromCart(1)
+  clearCart()
+
+localStorage:
+  localStorage.getItem('currentUser')
+  localStorage.clear()
+  localStorage
+
+
+?? API ENDPOINTS
+================================================================================
+
+USERS:
+  POST   /api/users/login        - ??ng nh?p
+  POST   /api/users/register     - ??ng ký
+  GET    /api/users              - L?y t?t c?
+  GET    /api/users/{id}         - L?y 1 user
+  PUT    /api/users/{id}         - C?p nh?t
+  DELETE /api/users/{id}         - Xóa
+
+CUSTOMERS:
+  POST   /api/customers          - T?o
+  GET    /api/customers          - L?y t?t c?
+  GET    /api/customers/{id}     - L?y 1 customer
+  PUT    /api/customers/{id}     - C?p nh?t
+  DELETE /api/customers/{id}     - Xóa
+
+PRODUCTS:
+  POST   /api/products           - T?o
+  GET    /api/products           - L?y t?t c?
+  GET    /api/products/{id}      - L?y 1 s?n ph?m
+  GET    /api/products/category/{category} - L?c theo danh m?c
+  PUT    /api/products/{id}      - C?p nh?t
+  DELETE /api/products/{id}      - Xóa
+
+CARTS:
+  POST   /api/carts/customer/{customerId}/add - Thêm s?n ph?m
+  GET    /api/carts/customer/{customerId}     - Xem gi?
+  PUT    /api/carts/items/{itemId}            - C?p nh?t s? l??ng
+  DELETE /api/carts/items/{itemId}            - Xóa s?n ph?m
+  DELETE /api/carts/customer/{customerId}/clear - Xóa gi?
+
+ORDERS:
+  POST   /api/orders             - T?o ??n hàng
+  GET    /api/orders             - L?y t?t c?
+  GET    /api/orders/{id}        - L?y 1 ??n hàng
+  PUT    /api/orders/{id}        - C?p nh?t
+  DELETE /api/orders/{id}        - Xóa
+
+
+?? AUTHENTICATION FLOW
+================================================================================
+
+Cách l?u tr? user:
+  localStorage.setItem('currentUser', JSON.stringify(user))
+  
+Ki?m tra user:
+  const user = getCurrentUser()
+  if (user.role !== 'ANONYMOUS') { /* User ?ã login */ }
+  
+Cách g?i API:
+  const result = await api.get('/api/products')
+  const result = await api.post('/api/orders', orderData)
+  
+X? lý response:
+  if (result.success) {
+    // Thành công
+  } else {
+    // L?i: result.error
+  }
+
+
+?? DATA STORAGE LOCATIONS
+================================================================================
+
+currentUser:
+  - L?u: localStorage (key: 'currentUser')
+  - Dùng: Ki?m tra role, customerId
+  - Xóa: Khi logout
+
+Cart:
+  - L?u: MySQL (CartItems table)
+  - Dùng: Thêm/s?a/xóa s?n ph?m
+  - Xóa: Khi checkout
+
+User:
+  - L?u: MySQL (Users table)
+  - Dùng: ??ng nh?p/??ng ký
+  - Xóa: Admin xóa
+
+Customer:
+  - L?u: MySQL (Customers table)
+  - Dùng: H? s? khách hàng
+  - Xóa: Admin xóa
+
+Order:
+  - L?u: MySQL (Orders table)
+  - Dùng: L?ch s? ??n hàng
+  - Xóa: Admin xóa
+
+
+? CHECKLIST TEST
+================================================================================
+
+[ ] Backend ch?y t?i http://localhost:5000
+[ ] Frontend ch?y t?i http://localhost:5500
+[ ] Swagger UI ho?t ??ng
+[ ] ??ng ký tài kho?n m?i
+[ ] ??ng nh?p admin/admin123
+[ ] ??ng nh?p tài kho?n v?a t?o
+[ ] T?o Customer profile
+[ ] Thêm s?n ph?m vào gi?
+[ ] Xem gi? hàng
+[ ] C?p nh?t s? l??ng s?n ph?m
+[ ] Xóa s?n ph?m kh?i gi?
+[ ] T?o ??n hàng
+[ ] Xem l?ch s? ??n hàng
+[ ] Admin qu?n lý s?n ph?m (CRUD)
+[ ] Admin qu?n lý users
+[ ] Admin qu?n lý customers
+[ ] ??ng xu?t
+
+
+?? TROUBLESHOOTING
+================================================================================
+
+? "Không k?t n?i ???c Backend"
+  ? Check: Backend ch?y?
+  ? Check: Port 5000 ?úng?
+  ? Check: CORS b?t?
+
+? "401 Unauthorized"
+  ? Check: Username/Password ?úng?
+  ? Check: User ?ã t?o?
+
+? "CORS error"
+  ? Backend: B?t CORS trong Program.cs
+  ? Frontend: Dùng credentials: 'include'
+
+? "Gi? hàng không l?u"
+  ? Check: localStorage b? disable?
+  ? Xóa cache: Ctrl+Shift+Delete
+  ? Hard refresh: Ctrl+F5
+
+? "Form không g?i"
+  ? F12 Console: Xem error messages
+  ? Check: D? li?u h?p l??
+  ? Check: Backend API ch?y?
+
+
+?? THAM KH?O THÊM
+================================================================================
+
+Frontend Config:
+  js/config.js ? CONFIG.BACKEND_URL
+
+Backend Config:
+  appsettings.json ? ConnectionStrings
+
+Database Connection:
+  Server=localhost;Database=shoptoyshg;Uid=root;Pwd=your_password
+
+
+================================================================================
+                        END OF GUIDE
+                  Project: ShopToysHG
+              Updated: 2026-01-21
+================================================================================

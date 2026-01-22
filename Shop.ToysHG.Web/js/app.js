@@ -56,8 +56,8 @@ function renderNavigation() {
 
     // Đăng nhập / Đăng ký (ANONYMOUS ONLY)
     if (user.role === 'ANONYMOUS') {
-        menuHTML += '<button onclick="switchUserTab(\'login\')">🔑 Đăng nhập</button>';
-        menuHTML += '<button onclick="switchUserTab(\'register\')">✍️ Đăng ký</button>';
+        menuHTML += '<button onclick="loadLoginForm()">🔑 Đăng nhập</button>';
+        menuHTML += '<button onclick="loadRegisterForm()">✍️ Đăng ký</button>';
     }
 
     // Đăng xuất (CUSTOMER + ADMIN)
@@ -603,4 +603,350 @@ async function fetchOrders() {
     } else {
         listDiv.innerHTML = `<p style="color: red;">❌ Lỗi: ${result.error || 'Không thể lấy danh sách'}</p>`;
     }
+}
+
+/**
+ * Lấy tổng số sản phẩm
+ */
+async function fetchTotalProducts() {
+    const result = await api.get('/api/products');
+    const totalElement = document.getElementById('total-products');
+    
+    if (result.success && Array.isArray(result.data)) {
+        totalElement.textContent = result.data.length;
+    } else {
+        totalElement.textContent = '0';
+    }
+}
+
+/**
+ * Cập nhật số lượng giỏ hàng
+ */
+async function updateCartCount() {
+    const cartCountElement = document.getElementById('cart-count');
+    if (!cartCountElement) return; // Nếu không có element, bỏ qua
+    
+    const count = await getCartCount();
+    cartCountElement.textContent = count;
+}
+
+/**
+ * Load form Đăng nhập / Đăng ký
+ */
+function loadAuthForms() {
+    const content = document.getElementById('content');
+    const user = getCurrentUser();
+    
+    // Nếu đã login, không hiển thị form
+    if (user.role !== 'ANONYMOUS') {
+        alert('✅ Bạn đã đăng nhập rồi!');
+        loadHome();
+        return;
+    }
+    
+    content.innerHTML = `
+        <div class="auth-wrapper">
+            <!-- TAB CHỌN -->
+            <div class="auth-tabs">
+                <button class="auth-tab-btn active" onclick="switchAuthTab('login')">🔑 Đăng Nhập</button>
+                <button class="auth-tab-btn" onclick="switchAuthTab('register')">✍️ Đăng Ký</button>
+            </div>
+
+            <!-- FORM ĐĂNG NHẬP -->
+            <div class="auth-form-container active" id="login-form-container">
+                <div class="auth-form">
+                    <h2>🔑 Đăng Nhập</h2>
+                    <p class="auth-subtitle">Nhập thông tin để đăng nhập vào tài khoản</p>
+                    
+                    <form onsubmit="handleLogin(event)">
+                        <div class="form-group">
+                            <label>📝 Username</label>
+                            <input type="text" id="login-username" placeholder="Nhập username của bạn" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>🔐 Password</label>
+                            <input type="password" id="login-password" placeholder="Nhập password của bạn" required>
+                        </div>
+                        
+                        <button type="submit" class="btn-primary btn-large">🔓 Đăng Nhập</button>
+                    </form>
+                    
+                    <div class="auth-divider">hoặc</div>
+                    
+                    <p class="auth-footer">
+                        Chưa có tài khoản? 
+                        <a href="#" onclick="switchAuthTab('register'); return false;">Đăng ký ngay</a>
+                    </p>
+                </div>
+            </div>
+
+            <!-- FORM ĐĂNG KÝ -->
+            <div class="auth-form-container" id="register-form-container">
+                <div class="auth-form">
+                    <h2>✍️ Đăng Ký Tài Khoản</h2>
+                    <p class="auth-subtitle">Tạo tài khoản mới để bắt đầu mua sắm</p>
+                    
+                    <form onsubmit="handleRegister(event)">
+                        <div class="form-group">
+                            <label>📝 Username</label>
+                            <input type="text" id="register-username" placeholder="Chọn username (ít nhất 3 ký tự)" required minlength="3" autofocus>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>📧 Email</label>
+                            <input type="email" id="register-email" placeholder="Nhập email của bạn" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>👤 Họ Tên</label>
+                            <input type="text" id="register-fullname" placeholder="Nhập họ và tên" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>🔐 Password</label>
+                            <input type="password" id="register-password" placeholder="Nhập password (ít nhất 6 ký tự)" required minlength="6">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>✓ Xác Nhận Password</label>
+                            <input type="password" id="register-password-confirm" placeholder="Nhập lại password" required minlength="6">
+                        </div>
+                        
+                        <button type="submit" class="btn-primary btn-large">📝 Đăng Ký</button>
+                    </form>
+                    
+                    <div class="auth-divider">hoặc</div>
+                    
+                    <p class="auth-footer">
+                        Đã có tài khoản? 
+                        <a href="#" onclick="switchAuthTab('login'); return false;">Đăng nhập ngay</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Chuyển đổi giữa tab Đăng nhập và Đăng ký
+ */
+function switchAuthTab(tab) {
+    // Ẩn tất cả form
+    document.querySelectorAll('.auth-form-container').forEach(container => {
+        container.classList.remove('active');
+    });
+    document.querySelectorAll('.auth-tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Hiển thị form được chọn
+    if (tab === 'login') {
+        document.getElementById('login-form-container').classList.add('active');
+        document.querySelectorAll('.auth-tab-btn')[0].classList.add('active');
+    } else {
+        document.getElementById('register-form-container').classList.add('active');
+        document.querySelectorAll('.auth-tab-btn')[1].classList.add('active');
+    }
+}
+
+/**
+ * Xử lý form Đăng nhập
+ */
+async function handleLogin(event) {
+    event.preventDefault();
+    
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
+    
+    if (!username || !password) {
+        alert('❌ Vui lòng điền đầy đủ thông tin!');
+        return;
+    }
+    
+    console.log('🔍 Logging in with:', { username });
+    
+    const result = await loginUser(username, password);
+    
+    if (result.success) {
+        alert(`✅ Đăng nhập thành công! Chào mừng ${result.user.username}`);
+        renderNavigation();
+        loadHome();
+    } else {
+        alert(`❌ Đăng nhập thất bại!\n${result.error || 'Username hoặc password sai'}`);
+        document.getElementById('login-password').value = '';
+        document.getElementById('login-username').focus();
+    }
+}
+
+/**
+ * Xử lý form Đăng ký
+ */
+async function handleRegister(event) {
+    event.preventDefault();
+    
+    const username = document.getElementById('register-username').value.trim();
+    const email = document.getElementById('register-email').value.trim();
+    const fullName = document.getElementById('register-fullname').value.trim();
+    const password = document.getElementById('register-password').value;
+    const passwordConfirm = document.getElementById('register-password-confirm').value;
+    
+    // Validation
+    if (!username || !email || !fullName || !password || !passwordConfirm) {
+        alert('❌ Vui lòng điền đầy đủ thông tin!');
+        return;
+    }
+    
+    if (username.length < 3) {
+        alert('❌ Username phải ít nhất 3 ký tự!');
+        return;
+    }
+    
+    if (password.length < 6) {
+        alert('❌ Password phải ít nhất 6 ký tự!');
+        return;
+    }
+    
+    if (password !== passwordConfirm) {
+        alert('❌ Password không trùng khớp!');
+        document.getElementById('register-password').focus();
+        return;
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        alert('❌ Email không hợp lệ!');
+        return;
+    }
+    
+    console.log('🔍 Registering with:', { username, email, fullName });
+    
+    const result = await registerUser({
+        username,
+        email,
+        fullName,
+        password
+    });
+    
+    if (result.success) {
+        alert('✅ Đăng ký thành công!\nVui lòng đăng nhập với tài khoản của bạn.');
+        loadLoginForm();
+        // Pre-fill username
+        setTimeout(() => {
+            const usernameInput = document.getElementById('login-username');
+            if (usernameInput) {
+                usernameInput.value = username;
+                usernameInput.focus();
+            }
+        }, 100);
+    } else {
+        alert(`❌ Đăng ký thất bại!\n${result.error || 'Username hoặc email đã tồn tại'}`);
+        console.error('Register error:', result);
+    }
+}
+
+/**
+ * Load trang ĐĂNG NHẬP riêng
+ */
+function loadLoginForm() {
+    const content = document.getElementById('content');
+    const user = getCurrentUser();
+    
+    // Nếu đã login, không hiển thị form
+    if (user.role !== 'ANONYMOUS') {
+        alert('✅ Bạn đã đăng nhập rồi!');
+        loadHome();
+        return;
+    }
+    
+    content.innerHTML = `
+        <div class="auth-wrapper">
+            <div class="auth-form">
+                <h2>🔑 Đăng Nhập</h2>
+                <p class="auth-subtitle">Nhập thông tin để đăng nhập vào tài khoản của bạn</p>
+                
+                <form onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label>📝 Username</label>
+                        <input type="text" id="login-username" placeholder="Nhập username của bạn" required autofocus>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>🔐 Password</label>
+                        <input type="password" id="login-password" placeholder="Nhập password của bạn" required>
+                    </div>
+                    
+                    <button type="submit" class="btn-primary btn-large">🔓 Đăng Nhập</button>
+                </form>
+                
+                <div class="auth-divider">hoặc</div>
+                
+                <p class="auth-footer">
+                    Chưa có tài khoản? 
+                    <a href="#" onclick="loadRegisterForm(); return false;">Đăng ký ngay</a>
+                </p>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Load trang ĐĂNG KÝ riêng
+ */
+function loadRegisterForm() {
+    const content = document.getElementById('content');
+    const user = getCurrentUser();
+    
+    // Nếu đã login, không hiển thị form
+    if (user.role !== 'ANONYMOUS') {
+        alert('✅ Bạn đã đăng nhập rồi!');
+        loadHome();
+        return;
+    }
+    
+    content.innerHTML = `
+        <div class="auth-wrapper">
+            <div class="auth-form">
+                <h2>✍️ Đăng Ký Tài Khoản</h2>
+                <p class="auth-subtitle">Tạo tài khoản mới để bắt đầu mua sắm</p>
+                
+                <form onsubmit="handleRegister(event)">
+                    <div class="form-group">
+                        <label>📝 Username</label>
+                        <input type="text" id="register-username" placeholder="Chọn username (ít nhất 3 ký tự)" required minlength="3" autofocus>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>📧 Email</label>
+                        <input type="email" id="register-email" placeholder="Nhập email của bạn" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>👤 Họ Tên</label>
+                        <input type="text" id="register-fullname" placeholder="Nhập họ và tên" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>🔐 Password</label>
+                        <input type="password" id="register-password" placeholder="Nhập password (ít nhất 6 ký tự)" required minlength="6">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>✓ Xác Nhận Password</label>
+                        <input type="password" id="register-password-confirm" placeholder="Nhập lại password" required minlength="6">
+                    </div>
+                    
+                    <button type="submit" class="btn-primary btn-large">📝 Đăng Ký</button>
+                </form>
+                
+                <div class="auth-divider">hoặc</div>
+                
+                <p class="auth-footer">
+                    Đã có tài khoản? 
+                    <a href="#" onclick="loadLoginForm(); return false;">Đăng nhập ngay</a>
+                </p>
+            </div>
+        </div>
+    `;
 }

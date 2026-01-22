@@ -19,7 +19,7 @@ async function addToCart(productId, productName, price) {
     // Kiểm tra user có phải ANONYMOUS không
     if (user.role === 'ANONYMOUS') {
         alert('⚠️ Bạn cần đăng nhập trước!');
-        switchUserTab('login');
+        loadLoginForm();
         return;
     }
 
@@ -33,7 +33,40 @@ async function addToCart(productId, productName, price) {
     // ADMIN không cần có Customer profile
     if (user.role === 'CUSTOMER' && !user.isCustomer) {
         alert('⚠️ Bạn cần tạo hồ sơ Customer trước khi thêm sản phẩm vào giỏ!');
-        switchUserTab('register');
+        // Chuyển sang tab thêm customer
+        const content = document.getElementById('content');
+        content.innerHTML = `
+            <div class="section">
+                <h2>👤 Tạo Hồ Sơ Customer</h2>
+                <form onsubmit="handleCreateCustomer(event)">
+                    <div class="form-group">
+                        <label>Họ tên:</label>
+                        <input type="text" id="customer-fullname" placeholder="Nhập họ tên" required>
+                    </div>
+                    <div class="form-group">
+                        <label>SĐT:</label>
+                        <input type="tel" id="customer-phone" placeholder="Nhập SĐT" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Địa chỉ:</label>
+                        <input type="text" id="customer-address" placeholder="Nhập địa chỉ" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Giới tính:</label>
+                        <select id="customer-gender" required>
+                            <option value="0">Nữ</option>
+                            <option value="1">Nam</option>
+                            <option value="-1">Khác</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Ngày sinh:</label>
+                        <input type="date" id="customer-birthdate">
+                    </div>
+                    <button type="submit" class="btn-primary">💾 Tạo Hồ Sơ</button>
+                </form>
+            </div>
+        `;
         return;
     }
 
@@ -217,4 +250,38 @@ function showCartNotification(message) {
         notification.style.animation = 'slideOut 0.3s ease';
         setTimeout(() => notification.remove(), 300);
     }, 3000);
+}
+
+/**
+ * Xử lý tạo hồ sơ Customer
+ */
+async function handleCreateCustomer(event) {
+    event.preventDefault();
+    
+    const user = getCurrentUser();
+    const fullName = document.getElementById('customer-fullname').value;
+    const phone = document.getElementById('customer-phone').value;
+    const address = document.getElementById('customer-address').value;
+    const gender = parseInt(document.getElementById('customer-gender').value);
+    const birthDate = document.getElementById('customer-birthdate').value;
+    
+    const result = await api.post('/api/customers', {
+        userId: user.id,
+        fullName,
+        phone,
+        address,
+        gender,
+        birthDate: birthDate ? new Date(birthDate).toISOString() : null
+    });
+    
+    if (result.success) {
+        alert('✅ Tạo hồ sơ Customer thành công!');
+        // Cập nhật user state
+        currentUser.isCustomer = true;
+        currentUser.customerId = result.data.id;
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+        loadHome();
+    } else {
+        alert(`❌ Lỗi: ${result.error || 'Tạo hồ sơ thất bại'}`);
+    }
 }
