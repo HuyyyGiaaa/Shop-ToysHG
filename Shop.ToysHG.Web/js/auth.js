@@ -3,6 +3,7 @@
  */
 
 // Lưu trữ User hiển thị - Mặc định là anonymous
+// ✅ FIX: Attach to window for global access
 let currentUser = (() => {
     const stored = localStorage.getItem('currentUser');
     
@@ -26,6 +27,9 @@ let currentUser = (() => {
     
     return getAnonymousUser();
 })();
+
+// ✅ FIX: Also expose on window for cross-script access
+window.currentUser = currentUser;
 
 /**
  * Tạo anonymous user object
@@ -65,6 +69,7 @@ async function loginUser(username, password) {
 
     if (result.success && result.data.user) {
         currentUser = result.data.user;
+        window.currentUser = currentUser; // ✅ FIX: Sync window.currentUser
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
         
         // Cập nhật menu sau khi login
@@ -84,6 +89,7 @@ async function loginUser(username, password) {
 function logoutUser() {
     // Reset về anonymous
     currentUser = getAnonymousUser();
+    window.currentUser = currentUser; // ✅ FIX: Sync window.currentUser
     localStorage.removeItem('currentUser');
     
     // Cập nhật menu sau khi logout
@@ -97,6 +103,15 @@ function logoutUser() {
  */
 function getCurrentUser() {
     return currentUser;
+}
+
+/**
+ * ✅ NEW: Update currentUser (for other scripts to call)
+ */
+function updateCurrentUser(updates) {
+    Object.assign(currentUser, updates);
+    window.currentUser = currentUser;
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
 }
 
 /**

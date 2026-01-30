@@ -94,6 +94,8 @@ namespace Shop_ToysHG.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
+                _logger.LogInformation($"?? Updating customer {id}: {updateDto.FullName}");
+
                 var customer = new Customer
                 {
                     FullName = updateDto.FullName ?? "",
@@ -104,20 +106,24 @@ namespace Shop_ToysHG.Controllers
                 };
 
                 var updatedCustomer = await _customerRepository.UpdateAsync(id, customer);
+                
+                _logger.LogInformation($"? Customer {id} updated successfully");
+                
                 return Ok(new
                 {
                     message = "C?p nh?t thông tin thành công",
-                    customer = MapToDto(updatedCustomer)
+                    data = MapToDto(updatedCustomer)
                 });
             }
             catch (KeyNotFoundException ex)
             {
+                _logger.LogWarning($"? Customer not found: {ex.Message}");
                 return NotFound(new { message = ex.Message });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error updating customer {id}");
-                return StatusCode(500, new { message = "Internal server error" });
+                return StatusCode(500, new { message = "Internal server error", error = ex.Message });
             }
         }
 
@@ -139,6 +145,61 @@ namespace Shop_ToysHG.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Error deleting customer {id}");
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// T?o customer m?i
+        /// </summary>
+        [HttpPost]
+        public async Task<ActionResult<CustomerDto>> Create([FromBody] CreateCustomerDto createDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
+
+                // Ki?m tra user t?n t?i
+                var userRepository = HttpContext.RequestServices.GetRequiredService<IUserRepository>();
+                var user = await userRepository.GetByIdAsync(createDto.UserId);
+                if (user == null)
+                    return BadRequest(new { message = $"User with ID {createDto.UserId} not found" });
+
+                // Ki?m tra customer ?ã t?n t?i cho user này ch?a
+                var existingCustomer = await _customerRepository.GetByUserIdAsync(createDto.UserId);
+                if (existingCustomer != null)
+                    return BadRequest(new { message = $"Customer already exists for user {createDto.UserId}" });
+
+                var customer = new Customer
+                {
+                    UserId = createDto.UserId,
+                    FullName = createDto.FullName ?? "",
+                    Phone = createDto.Phone,
+                    Address = createDto.Address,
+                    Gender = createDto.Gender ?? 0,
+                    BirthDate = createDto.BirthDate,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
+                };
+
+                var createdCustomer = await _customerRepository.CreateAsync(customer);
+                
+                _logger.LogInformation($"? Customer created: ID={createdCustomer.Id}, UserId={createdCustomer.UserId}, Name={createdCustomer.FullName}");
+                
+                var response = new
+                {
+                    message = "T?o h? s? Customer thành công",
+                    data = MapToDto(createdCustomer)
+                };
+                
+                _logger.LogInformation($"?? Response data: {System.Text.Json.JsonSerializer.Serialize(response.data)}");
+                
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating customer");
                 return StatusCode(500, new { message = "Internal server error" });
             }
         }

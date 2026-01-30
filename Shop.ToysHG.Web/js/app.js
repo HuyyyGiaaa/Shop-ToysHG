@@ -42,6 +42,7 @@ function renderNavigation() {
     if (user.role === 'CUSTOMER') {
         menuHTML += '<button onclick="loadCart()">🛒 Giỏ hàng</button>';
         menuHTML += '<button onclick="loadOrders()">📋 Đơn hàng</button>';
+        menuHTML += '<button onclick="loadProfile()">👤 Hồ Sơ</button>';
     }
 
     // Người dùng + Khách hàng + Quản lý (ADMIN ONLY)
@@ -949,4 +950,150 @@ function loadRegisterForm() {
             </div>
         </div>
     `;
+}
+
+/**
+ * Load giỏ hàng
+ */
+async function loadCart() {
+    const user = getCurrentUser();
+    const content = document.getElementById('content');
+    
+    // Kiểm tra user đã login hay chưa
+    if (user.role === 'ANONYMOUS') {
+        content.innerHTML = `
+            <div class="section">
+                <h2>🛒 Giỏ Hàng</h2>
+                <p style="color: #dc3545;">⚠️ Bạn cần đăng nhập để xem giỏ hàng!</p>
+                <button onclick="loadLoginForm()">🔑 Đăng nhập</button>
+            </div>
+        `;
+        return;
+    }
+    
+    content.innerHTML = `
+        <div class="section">
+            <h2>🛒 Giỏ Hàng</h2>
+            
+            <div id="cart-container" style="margin-top: 20px;">
+                <p>⏳ Đang tải...</p>
+            </div>
+        </div>
+    `;
+    
+    displayCart();
+}
+
+/**
+ * Hiển thị giỏ hàng
+ */
+async function displayCart() {
+    const items = await getCartItems();
+    const total = await getCartTotal();
+    const container = document.getElementById('cart-container');
+    
+    if (!items || items.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 40px 0;">
+                <p style="font-size: 1.2em; color: #666;">🛒 Giỏ hàng của bạn trống</p>
+                <button onclick="loadProducts()" style="margin-top: 20px;">📦 Tiếp tục mua sắm</button>
+            </div>
+        `;
+        return;
+    }
+    
+    const cartItemsHtml = items.map(item => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border: 1px solid #dee2e6; margin-bottom: 10px; border-radius: 5px;">
+            <div style="flex: 1;">
+                <h4 style="margin: 0 0 5px 0;">${item.productName}</h4>
+                <p style="margin: 0; color: #666;">
+                    Giá: ₫${Number(item.productPrice).toLocaleString('vi-VN')} 
+                    | Số lượng: ${item.quantity} 
+                    | Thành tiền: ₫${Number(item.subtotal).toLocaleString('vi-VN')}
+                </p>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="number" value="${item.quantity}" min="1" 
+                       onchange="updateCartQuantity(${item.id}, this.value)"
+                       style="width: 60px; padding: 5px; border: 1px solid #dee2e6; border-radius: 3px;">
+                <button onclick="removeFromCart(${item.id})" style="background: #dc3545; color: white; padding: 5px 10px; border: none; border-radius: 3px; cursor: pointer;">
+                    🗑️ Xóa
+                </button>
+            </div>
+        </div>
+    `).join('');
+    
+    container.innerHTML = `
+        <div style="border: 2px solid #dee2e6; padding: 20px; border-radius: 5px;">
+            <h3>📦 Các sản phẩm trong giỏ:</h3>
+            ${cartItemsHtml}
+            
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 2px solid #dee2e6;">
+                <h3>💰 Tổng cộng: ₫${Number(total).toLocaleString('vi-VN')}</h3>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="loadProducts()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                    ◀️ Tiếp tục mua sắm
+                </button>
+                <button onclick="proceedCheckout()" style="padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                    ✅ Thanh toán
+                </button>
+                <button onclick="clearCartConfirm()" style="padding: 10px 20px; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                    🗑️ Xóa toàn bộ
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Xác nhận xóa toàn bộ giỏ
+ */
+function clearCartConfirm() {
+    if (confirm('Bạn có chắc chắn muốn xóa toàn bộ giỏ hàng?')) {
+        clearCart();
+    }
+}
+
+/**
+ * Xử lý thanh toán
+ */
+async function proceedCheckout() {
+    const user = getCurrentUser();
+    const items = await getCartItems();
+    const total = await getCartTotal();
+    
+    if (!items || items.length === 0) {
+        alert('❌ Giỏ hàng trống!');
+        return;
+    }
+    
+    const shippingAddress = prompt('Nhập địa chỉ giao hàng:');
+    
+    if (!shippingAddress) {
+        return;
+    }
+    
+    const orderData = {
+        customerId: user.customerId,
+        totalAmount: total,
+        shippingAddress: shippingAddress,
+        orderItems: items.map(item => ({
+            productId: item.productId,
+            price: item.productPrice,
+            quantity: item.quantity,
+            subtotal: item.subtotal
+        }))
+    };
+    
+    const result = await api.post('/api/orders', orderData);
+    
+    if (result.success) {
+        alert('✅ Tạo đơn hàng thành công!\nMã đơn hàng: ' + result.data.orderCode);
+        await clearCart();
+        loadHome();
+    } else {
+        alert('❌ Lỗi: ' + result.error);
+    }
 }

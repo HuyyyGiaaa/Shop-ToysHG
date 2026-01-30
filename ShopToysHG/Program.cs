@@ -66,22 +66,30 @@ app.Run();
 /// </summary>
 void SeedData(ShopToysHGContext context)
 {
+    Console.WriteLine("?? Starting SeedData...");
+    
     // Seed Roles
     if (!context.Roles.Any())
     {
+        Console.WriteLine("?? Seeding Roles...");
         var roles = new List<Role>
         {
             new Role { Id = 1, Name = "ADMIN", Description = "Qu?n tr? viên", CreatedAt = DateTime.Now },
-            new Role { Id = 2, Name = "STAFF", Description = "Nhân viên", CreatedAt = DateTime.Now },
-            new Role { Id = 3, Name = "CUSTOMER", Description = "Khách hàng", CreatedAt = DateTime.Now }
+            new Role { Id = 2, Name = "CUSTOMER", Description = "Khách hàng", CreatedAt = DateTime.Now }
         };
         context.Roles.AddRange(roles);
         context.SaveChanges();
+        Console.WriteLine("? Roles seeded: ADMIN (1), CUSTOMER (2)");
+    }
+    else
+    {
+        Console.WriteLine("??  Roles already exist");
     }
 
     // Seed Admin User
     if (!context.Users.Any(u => u.Username == "admin"))
     {
+        Console.WriteLine("?? Seeding Admin User...");
         var adminRole = context.Roles.First(r => r.Name == "ADMIN");
         var adminUser = new User
         {
@@ -94,6 +102,7 @@ void SeedData(ShopToysHGContext context)
         };
         context.Users.Add(adminUser);
         context.SaveChanges();
+        Console.WriteLine($"? Admin user created with RoleId: {adminRole.Id}");
 
         // T?o Admin Customer + Cart
         var adminCustomer = new Customer
@@ -105,6 +114,7 @@ void SeedData(ShopToysHGContext context)
         };
         context.Customers.Add(adminCustomer);
         context.SaveChanges();
+        Console.WriteLine("? Admin customer created");
 
         // T?o Cart cho Admin
         var adminCart = new Cart
@@ -114,7 +124,14 @@ void SeedData(ShopToysHGContext context)
         };
         context.Carts.Add(adminCart);
         context.SaveChanges();
+        Console.WriteLine("? Admin cart created");
     }
+    else
+    {
+        Console.WriteLine("??  Admin user already exists");
+    }
+    
+    Console.WriteLine("? SeedData completed!");
 }
 
 /// <summary>

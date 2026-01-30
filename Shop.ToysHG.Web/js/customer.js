@@ -5,8 +5,8 @@
 /**
  * Xem thông tin Customer
  */
-async function viewCustomer(customerId) {
-    const result = await api.get(`/api/customers/${customerId}`);
+async function viewCustomer(id) {
+    const result = await api.get(`/api/customers/${id}`);
     if (!result.success) {
         alert('❌ Lỗi: ' + result.error);
         return;

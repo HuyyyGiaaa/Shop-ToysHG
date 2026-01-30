@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Shop_ToysHG.Models;
 using Shop_ToysHG.DTOs;
 using Shop_ToysHG.Repositories;
@@ -29,7 +29,7 @@ namespace Shop_ToysHG.Controllers
         }
 
         /// <summary>
-        /// ??ng k� t�i kho?n m?i
+        /// Đăng kí tài khoản mới
         /// </summary>
         [HttpPost("register")]
         public async Task<ActionResult<UserDto>> Register([FromBody] RegisterUserDto registerDto)
@@ -39,15 +39,14 @@ namespace Shop_ToysHG.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
-                // Ki?m tra username ho?c email ?� t?n t?i
+                // Kiểm tra username hoặc email đã tồn tại
                 if (await _userRepository.UserExistsAsync(registerDto.Username, registerDto.Email))
-                    return BadRequest(new { message = "Username ho?c email ?� t?n t?i" });
+                    return BadRequest(new { message = "Username hoặc email đã tồn tại" });
 
-                // L?y Role CUSTOMER (m?c ??nh RoleId = 3)
-                // Gi? s? Roles: 1=ADMIN, 2=STAFF, 3=CUSTOMER
-                const int customerRoleId = 3;
+                // Lấy Role CUSTOMER (mặc định RoleId = 2)
+                const int customerRoleId = 2;
 
-                // T?o User
+                // Tạo User
                 var user = new User
                 {
                     Username = registerDto.Username,
@@ -61,7 +60,7 @@ namespace Shop_ToysHG.Controllers
 
                 return Ok(new
                 {
-                    message = "??ng k� th�nh c�ng. Vui l�ng ??ng nh?p.",
+                    message = "Đăng kí thành công. Vui lòng đăng nhập.",
                     user = new UserDto
                     {
                         Id = createdUser.Id,
@@ -94,15 +93,27 @@ namespace Shop_ToysHG.Controllers
 
                 var user = await _userRepository.GetByUsernameAsync(loginDto.Username);
 
+                _logger.LogInformation($"🔍 Login attempt for username: {loginDto.Username}, User found: {user != null}");
+                
+                if (user != null)
+                {
+                    _logger.LogInformation($"   RoleId: {user.RoleId}, Email: {user.Email}");
+                    var passwordMatch = VerifyPassword(loginDto.Password, user.PasswordHash);
+                    _logger.LogInformation($"   Password match: {passwordMatch}");
+                }
+
                 if (user == null || !VerifyPassword(loginDto.Password, user.PasswordHash))
-                    return Unauthorized(new { message = "Username ho?c password kh�ng ??ng" });
+                    return Unauthorized(new { message = "Username ho?c password không ??ng" });
 
                 if (user.Status == 0)
-                    return Unauthorized(new { message = "T�i kho?n ?� b? kh�a" });
+                    return Unauthorized(new { message = "Tài kho?n ?ã b? khóa" });
+
+                // Debug log
+                _logger.LogInformation($"🔐 User login: {user.Username}, RoleId: {user.RoleId}, ID: {user.Id}");
 
                 return Ok(new
                 {
-                    message = "??ng nh?p th�nh c�ng",
+                    message = "??ng nh?p thành công",
                     user = await MapToDtoAsync(user)
                 });
             }
@@ -114,7 +125,7 @@ namespace Shop_ToysHG.Controllers
         }
 
         /// <summary>
-        /// L?y th�ng tin user theo ID
+        /// L?y thông tin user theo ID
         /// </summary>
         [HttpGet("{id}")]
         public async Task<ActionResult<UserDto>> GetById(int id)
@@ -136,7 +147,7 @@ namespace Shop_ToysHG.Controllers
         }
 
         /// <summary>
-        /// L?y danh s�ch t?t c? users (ch? admin)
+        /// L?y danh sách t?t c? users (ch? admin)
         /// </summary>
         [HttpGet]
         public async Task<ActionResult<List<UserDto>>> GetAll()
@@ -159,7 +170,7 @@ namespace Shop_ToysHG.Controllers
         }
 
         /// <summary>
-        /// C?p nh?t th�ng tin user
+        /// Cập nhật thông tin user
         /// </summary>
         [HttpPut("{id}")]
         public async Task<ActionResult<UserDto>> Update(int id, [FromBody] UserDto updateDto)
@@ -169,17 +180,22 @@ namespace Shop_ToysHG.Controllers
                 if (!ModelState.IsValid)
                     return BadRequest(ModelState);
 
+                // Lấy user hiện tại để giữ lại role hiện tại
+                var existingUser = await _userRepository.GetByIdAsync(id);
+                if (existingUser == null)
+                    return NotFound(new { message = $"User with ID {id} not found" });
+
                 var user = new User
                 {
                     Email = updateDto.Email,
                     Status = updateDto.Status,
-                    RoleId = 3  // M?c ??nh CUSTOMER (RoleId=3)
+                    RoleId = existingUser.RoleId  // Giữ lại role hiện tại
                 };
 
                 var updatedUser = await _userRepository.UpdateAsync(id, user);
                 return Ok(new
                 {
-                    message = "C?p nh?t th�nh c�ng",
+                    message = "Cập nhật thành công",
                     user = await MapToDtoAsync(updatedUser)
                 });
             }
@@ -195,7 +211,7 @@ namespace Shop_ToysHG.Controllers
         }
 
         /// <summary>
-        /// X�a user
+        /// Xóa user
         /// </summary>
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(int id)
@@ -221,13 +237,29 @@ namespace Shop_ToysHG.Controllers
         /// </summary>
         private async Task<UserDto> MapToDtoAsync(User user)
         {
-            // Ki?m tra user c� ph?i l� Customer kh�ng
-            var customer = await _customerRepository.GetByUserIdAsync(user.Id);
+            // Kiểm tra user có phải là Customer không
+            Customer? customer = null;
+            try
+            {
+                customer = await _customerRepository.GetByUserIdAsync(user.Id);
+                _logger.LogInformation($"✅ Found customer for user {user.Id}: CustomerId={customer?.Id}");
+            }
+            catch (Exception ex)
+            {
+                // Admin user có thể không có Customer record
+                _logger.LogWarning($"⚠️ No customer for user {user.Id}: {ex.Message}");
+                customer = null;
+            }
             
-            // L?y role name t? RoleId
-            string roleName = user.Role?.Name ?? "CUSTOMER";
+            // Lấy role name từ RoleId
+            string roleName = "CUSTOMER"; // Default
             
-            return new UserDto
+            if (user.RoleId == 1)
+                roleName = "ADMIN";
+            else if (user.RoleId == 2)
+                roleName = "CUSTOMER";
+            
+            var dto = new UserDto
             {
                 Id = user.Id,
                 Username = user.Username,
@@ -237,6 +269,10 @@ namespace Shop_ToysHG.Controllers
                 IsCustomer = customer != null,
                 CustomerId = customer?.Id
             };
+            
+            _logger.LogInformation($"📤 UserDto returned: IsCustomer={dto.IsCustomer}, CustomerId={dto.CustomerId}");
+            
+            return dto;
         }
 
         /// <summary>
@@ -244,7 +280,12 @@ namespace Shop_ToysHG.Controllers
         /// </summary>
         private UserDto MapToDto(User user)
         {
-            string roleName = user.Role?.Name ?? "CUSTOMER";
+            string roleName = "CUSTOMER"; // Default
+            
+            if (user.RoleId == 1)
+                roleName = "ADMIN";
+            else if (user.RoleId == 2)
+                roleName = "CUSTOMER";
             
             return new UserDto
             {

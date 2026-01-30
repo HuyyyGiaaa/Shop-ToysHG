@@ -83,15 +83,32 @@ namespace Shop_ToysHG.Repositories
                 if (existingCustomer == null)
                     throw new KeyNotFoundException($"Customer with ID {id} not found");
 
-                existingCustomer.FullName = customer.FullName ?? existingCustomer.FullName;
-                existingCustomer.Phone = customer.Phone ?? existingCustomer.Phone;
-                existingCustomer.Address = customer.Address ?? existingCustomer.Address;
+                // Update fields - ch? update n?u có giá tr? m?i
+                if (!string.IsNullOrEmpty(customer.FullName))
+                    existingCustomer.FullName = customer.FullName;
+                
+                if (!string.IsNullOrEmpty(customer.Phone))
+                    existingCustomer.Phone = customer.Phone;
+                
+                if (!string.IsNullOrEmpty(customer.Address))
+                    existingCustomer.Address = customer.Address;
+                
+                // Gender luôn update
                 existingCustomer.Gender = customer.Gender;
-                existingCustomer.BirthDate = customer.BirthDate ?? existingCustomer.BirthDate;
+                
+                // BirthDate: c?p nh?t n?u có giá tr?, cho phép null
+                if (customer.BirthDate.HasValue)
+                    existingCustomer.BirthDate = customer.BirthDate;
+                else if (customer.BirthDate == null)
+                    existingCustomer.BirthDate = null; // Cho phép xóa BirthDate
+                
                 existingCustomer.UpdatedAt = DateTime.Now;
 
                 _context.Customers.Update(existingCustomer);
                 await _context.SaveChangesAsync();
+                
+                _logger.LogInformation($"? Updated customer {id}: FullName={existingCustomer.FullName}, Phone={existingCustomer.Phone}, BirthDate={existingCustomer.BirthDate}");
+                
                 return existingCustomer;
             }
             catch (Exception ex)

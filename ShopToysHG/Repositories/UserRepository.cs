@@ -94,7 +94,7 @@ namespace Shop_ToysHG.Repositories
 
                 existingUser.Email = user.Email;
                 existingUser.Status = user.Status;
-                existingUser.Role = user.Role;
+                existingUser.RoleId = user.RoleId;  // ? S?a: user.Role ? user.RoleId
                 existingUser.UpdatedAt = DateTime.Now;
 
                 _context.Users.Update(existingUser);
